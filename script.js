@@ -1,3 +1,6 @@
+// ==================== VERSION ====================
+const APP_VERSION = '1.0.0';
+
 // ==================== DATA LAYER ====================
 function getProfiles() {
   return JSON.parse(localStorage.getItem('im_profiles') || '[]');
@@ -98,9 +101,14 @@ function switchTab(tabId, btn) {
 // ==================== APP ENTRY ====================
 function enterApp() {
   hideAuthError();
-  showScreen('screen-app');
+  const user = getCurrentUser();
+  if (user && user.isAdmin) {
+    showScreen('screen-admin');
+  } else {
+    showScreen('screen-app');
+    requestNotificationPermission();
+  }
   refreshApp();
-  requestNotificationPermission();
 }
 
 function refreshApp() {
@@ -256,10 +264,7 @@ function dismissTimer() {
     hideUserOvertimeBanner();
   } else if (user && user.minutesBank <= 0 && !overtimeInterval) {
     // User has no minutes and overtime isn't already running — start it now
-    console.log('[Overtime] Starting overtime tracking after dismiss (0 balance)');
     startOvertimeTracking();
-  } else {
-    console.log('[Overtime] Overtime interval already running, seconds:', overtimeSeconds);
   }
   document.getElementById('timer-finished').classList.add('hidden');
   document.getElementById('timer-setup').classList.remove('hidden');
@@ -283,16 +288,11 @@ const OVERTIME_THRESHOLD = 60; // seconds (set to 60 for testing, change to 600 
 function startOvertimeTracking() {
   overtimeSeconds = 0;
   clearInterval(overtimeInterval);
-  console.log('[Overtime] Tracking started, threshold:', OVERTIME_THRESHOLD, 'seconds');
   overtimeInterval = setInterval(() => {
     overtimeSeconds++;
-    if (overtimeSeconds % 10 === 0) {
-      console.log('[Overtime] Elapsed:', overtimeSeconds, '/', OVERTIME_THRESHOLD, 'seconds');
-    }
     if (overtimeSeconds >= OVERTIME_THRESHOLD) {
       clearInterval(overtimeInterval);
       overtimeInterval = null;
-      console.log('[Overtime] Threshold reached! Flagging overtime.');
       flagOvertime();
     }
   }, 1000);
@@ -492,6 +492,16 @@ function setTheme(name) {
   updateUser(user);
   applyTheme(name, getMode(user));
   renderThemePicker(name);
+  // Also update admin theme picker if visible
+  const adminPicker = document.getElementById('admin-theme-picker');
+  if (adminPicker) {
+    adminPicker.innerHTML = Object.entries(THEMES_DARK).map(([n, t]) =>
+      `<div class="theme-dot ${n === name ? 'active' : ''}"
+            style="background:${t.accent}"
+            onclick="setTheme('${n}')"
+            title="${n}"></div>`
+    ).join('');
+  }
 }
 
 function setMode(mode) {
@@ -503,14 +513,39 @@ function setMode(mode) {
 }
 
 function updateModeButtons(mode) {
-  const darkBtn = document.getElementById('btn-dark-mode');
-  const lightBtn = document.getElementById('btn-light-mode');
-  if (mode === 'dark') {
-    darkBtn.className = 'btn btn-sm';
-    lightBtn.className = 'btn btn-sm btn-outline';
-  } else {
-    darkBtn.className = 'btn btn-sm btn-outline';
-    lightBtn.className = 'btn btn-sm';
+  // Update both user and admin mode buttons
+  const pairs = [
+    ['btn-dark-mode', 'btn-light-mode'],
+    ['admin-btn-dark-mode', 'admin-btn-light-mode']
+  ];
+  pairs.forEach(([darkId, lightId]) => {
+    const darkBtn = document.getElementById(darkId);
+    const lightBtn = document.getElementById(lightId);
+    if (!darkBtn || !lightBtn) return;
+    if (mode === 'dark') {
+      darkBtn.className = 'btn btn-sm';
+      lightBtn.className = 'btn btn-sm btn-outline';
+    } else {
+      darkBtn.className = 'btn btn-sm btn-outline';
+      lightBtn.className = 'btn btn-sm';
+    }
+  });
+}
+
+function adminSettings() {
+  const panel = document.getElementById('admin-settings-panel');
+  panel.classList.toggle('hidden');
+  if (!panel.classList.contains('hidden')) {
+    // Render admin theme picker
+    const user = getCurrentUser();
+    const el = document.getElementById('admin-theme-picker');
+    const current = user.theme || 'pink';
+    el.innerHTML = Object.entries(THEMES_DARK).map(([name, t]) =>
+      `<div class="theme-dot ${name === current ? 'active' : ''}"
+            style="background:${t.accent}"
+            onclick="setTheme('${name}')"
+            title="${name}"></div>`
+    ).join('');
   }
 }
 
@@ -598,6 +633,7 @@ function deleteProfile() {
 
 // ==================== INIT ====================
 (function init() {
+  document.getElementById('version-badge').textContent = 'v' + APP_VERSION;
   const user = getCurrentUser();
   if (user) {
     enterApp();

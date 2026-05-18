@@ -176,7 +176,10 @@
   <div id="screen-admin" class="screen">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;">
       <h1>Admin Dashboard</h1>
-      <button class="btn btn-sm btn-outline" onclick="showScreen('screen-app')">Back</button>
+      <div>
+        <button class="btn btn-sm btn-outline" onclick="adminSettings()">Settings</button>
+        <button class="btn btn-sm btn-outline" onclick="logout()">Log Out</button>
+      </div>
     </div>
 
     <div id="admin-overtime-banners"></div>
@@ -203,9 +206,33 @@
       <h2>Weekly Usage Per User</h2>
       <div id="admin-weekly"></div>
     </div>
+
+    <!-- Admin Settings (hidden by default) -->
+    <div id="admin-settings-panel" class="hidden">
+      <div class="card">
+        <h2>Mode</h2>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-sm" id="admin-btn-dark-mode" onclick="setMode('dark')">Dark</button>
+          <button class="btn btn-sm btn-outline" id="admin-btn-light-mode" onclick="setMode('light')">Light</button>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Choose Theme</h2>
+        <div class="theme-picker" id="admin-theme-picker"></div>
+      </div>
+      <div class="card">
+        <h2>Account</h2>
+        <p style="font-size:0.9rem;color:var(--text-muted);margin-bottom:14px;">
+          Deleting your profile will permanently remove your admin account.
+        </p>
+        <button class="btn btn-danger btn-block" onclick="deleteProfile()">Delete Profile</button>
+      </div>
+    </div>
   </div>
 
 </div>
+
+<div class="version-badge" id="version-badge"></div>
 
 <script src="script.js"></script>
 

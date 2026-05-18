@@ -181,6 +181,13 @@ label { display: block; font-weight: 600; margin-bottom: 5px; font-size: 0.9rem;
 .screen { display: none; }
 .screen.active { display: block; }
 
+/* Version badge */
+.version-badge {
+  position: fixed; bottom: 8px; right: 12px;
+  font-size: 0.7rem; color: var(--text-muted);
+  opacity: 0.5;
+}
+
 /* Utility */
 .text-center { text-align: center; }
 .mt-10 { margin-top: 10px; }
