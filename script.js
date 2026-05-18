@@ -1,22 +1,62 @@
 // ==================== VERSION ====================
-const APP_VERSION = '1.1.0';
+const APP_VERSION = '1.2.0';
 
-// ==================== DATA LAYER ====================
+// ==================== DATA LAYER (GitHub Gist) ====================
+let db = { profiles: [] }; // in-memory cache
+
+async function loadDB() {
+  try {
+    const res = await fetch(`https://api.github.com/gists/${GIST_ID}`, {
+      headers: { 'Authorization': `token ${GITHUB_TOKEN}` }
+    });
+    if (!res.ok) throw new Error('Failed to load data');
+    const gist = await res.json();
+    const content = gist.files['data.json'].content;
+    const parsed = JSON.parse(content);
+    db = parsed && parsed.profiles ? parsed : { profiles: [] };
+  } catch (e) {
+    console.error('loadDB error:', e);
+    // Fall back to localStorage cache
+    const cached = localStorage.getItem('im_db_cache');
+    if (cached) db = JSON.parse(cached);
+  }
+}
+
+async function saveDB() {
+  // Save to localStorage as cache/fallback
+  localStorage.setItem('im_db_cache', JSON.stringify(db));
+  try {
+    await fetch(`https://api.github.com/gists/${GIST_ID}`, {
+      method: 'PATCH',
+      headers: {
+        'Authorization': `token ${GITHUB_TOKEN}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        files: { 'data.json': { content: JSON.stringify(db, null, 2) } }
+      })
+    });
+  } catch (e) {
+    console.error('saveDB error:', e);
+  }
+}
+
 function getProfiles() {
-  return JSON.parse(localStorage.getItem('im_profiles') || '[]');
+  return db.profiles || [];
 }
-function saveProfiles(profiles) {
-  localStorage.setItem('im_profiles', JSON.stringify(profiles));
-}
+
 function getCurrentUser() {
   const id = localStorage.getItem('im_currentUser');
   if (!id) return null;
   return getProfiles().find(p => p.id === id) || null;
 }
-function updateUser(updatedUser) {
-  const profiles = getProfiles();
-  const idx = profiles.findIndex(p => p.id === updatedUser.id);
-  if (idx !== -1) { profiles[idx] = updatedUser; saveProfiles(profiles); }
+
+async function updateUser(updatedUser) {
+  const idx = db.profiles.findIndex(p => p.id === updatedUser.id);
+  if (idx !== -1) {
+    db.profiles[idx] = updatedUser;
+    await saveDB();
+  }
 }
 
 // ==================== AUTH ====================
@@ -38,13 +78,14 @@ function hideAuthError() {
   document.getElementById('auth-error').classList.add('hidden');
 }
 
-function signup() {
+async function signup() {
   const name = document.getElementById('signup-name').value.trim();
   const pin = document.getElementById('signup-pin').value.trim();
   const isAdmin = document.getElementById('signup-admin').checked;
   if (!name) { showAuthError('Please enter a name.'); return; }
-  const profiles = getProfiles();
-  if (profiles.find(p => p.name.toLowerCase() === name.toLowerCase())) {
+  // Reload DB to get latest profiles from other devices
+  await loadDB();
+  if (db.profiles.find(p => p.name.toLowerCase() === name.toLowerCase())) {
     showAuthError('A profile with that name already exists.'); return;
   }
   const user = {
@@ -54,18 +95,19 @@ function signup() {
     practiceLog: [],
     usageLog: []
   };
-  profiles.push(user);
-  saveProfiles(profiles);
+  db.profiles.push(user);
+  await saveDB();
   localStorage.setItem('im_currentUser', user.id);
   enterApp();
 }
 
-function login() {
+async function login() {
   const name = document.getElementById('login-name').value.trim();
   const pin = document.getElementById('login-pin').value.trim();
   if (!name) { showAuthError('Please enter your name.'); return; }
-  const profiles = getProfiles();
-  const user = profiles.find(p => p.name.toLowerCase() === name.toLowerCase());
+  // Reload DB to get latest profiles from other devices
+  await loadDB();
+  const user = db.profiles.find(p => p.name.toLowerCase() === name.toLowerCase());
   if (!user) { showAuthError('Profile not found.'); return; }
   if (user.pin && user.pin !== pin) { showAuthError('Incorrect PIN.'); return; }
   localStorage.setItem('im_currentUser', user.id);
@@ -129,7 +171,7 @@ function refreshApp() {
 }
 
 // ==================== PRACTICE LOGGING ====================
-function logPractice() {
+async function logPractice() {
   const hours = parseInt(document.getElementById('practice-hours').value) || 0;
   const mins = parseInt(document.getElementById('practice-mins').value) || 0;
   const total = hours * 60 + mins;
@@ -137,7 +179,7 @@ function logPractice() {
   const user = getCurrentUser();
   user.minutesBank += total;
   user.practiceLog.push({ date: new Date().toISOString(), minutes: total });
-  updateUser(user);
+  await updateUser(user);
   document.getElementById('practice-hours').value = 0;
   document.getElementById('practice-mins').value = 0;
   refreshApp();
@@ -221,13 +263,13 @@ function cancelTimer() {
   document.getElementById('timer-finished').classList.add('hidden');
 }
 
-function timerFinished() {
+async function timerFinished() {
   // Deduct minutes
   const user = getCurrentUser();
   user.minutesBank = Math.max(0, user.minutesBank - timerTotalMinutes);
   const today = new Date().toISOString().slice(0, 10);
   user.usageLog.push({ date: today, minutesUsed: timerTotalMinutes, overtime: false });
-  updateUser(user);
+  await updateUser(user);
 
   // Play alarm
   playAlarm();
@@ -250,8 +292,6 @@ function timerFinished() {
   document.getElementById('timer-running').classList.add('hidden');
   document.getElementById('timer-finished').classList.remove('hidden');
 
-
-
   refreshApp();
 }
 
@@ -259,11 +299,9 @@ function dismissTimer() {
   stopAlarm();
   const user = getCurrentUser();
   if (user && user.minutesBank > 0) {
-    // User has minutes left — stop overtime tracking
     clearInterval(overtimeInterval); overtimeInterval = null;
     hideUserOvertimeBanner();
   } else if (user && user.minutesBank <= 0 && !overtimeInterval) {
-    // User has no minutes and overtime isn't already running — start it now
     startOvertimeTracking();
   }
   document.getElementById('timer-finished').classList.add('hidden');
@@ -278,7 +316,6 @@ function educationalBypass() {
   document.getElementById('timer-finished').classList.add('hidden');
   document.getElementById('timer-setup').classList.remove('hidden');
   document.getElementById('timer-input').value = '';
-  // No restriction — user continues for educational purposes
   refreshApp();
 }
 
@@ -298,18 +335,14 @@ function startOvertimeTracking() {
   }, 1000);
 }
 
-function flagOvertime() {
+async function flagOvertime() {
   const user = getCurrentUser();
-  // Mark the last usage entry as overtime
   if (user.usageLog.length > 0) {
     user.usageLog[user.usageLog.length - 1].overtime = true;
   }
-  updateUser(user);
+  await updateUser(user);
 
-  // Notify the user
   sendNotification('Instrument Minutes', 'You have gone over your screen time limit!');
-
-  // Show overtime banner on user's page
   showUserOvertimeBanner();
 }
 
@@ -321,7 +354,6 @@ function showUserOvertimeBanner() {
     banner.className = 'overtime-banner';
     banner.style.cursor = 'pointer';
     banner.onclick = function() { banner.classList.add('hidden'); };
-    // Insert at top of the app screen, after the profile header
     const appScreen = document.getElementById('screen-app');
     const nav = appScreen.querySelector('.nav');
     appScreen.insertBefore(banner, nav);
@@ -385,9 +417,8 @@ function renderStats() {
   const user = getCurrentUser();
   if (!user) return;
 
-  // Get current week (Mon-Sun)
   const now = new Date();
-  const dayOfWeek = (now.getDay() + 6) % 7; // Mon=0
+  const dayOfWeek = (now.getDay() + 6) % 7;
   const monday = new Date(now);
   monday.setDate(now.getDate() - dayOfWeek);
   monday.setHours(0, 0, 0, 0);
@@ -414,7 +445,6 @@ function renderStats() {
     </div>`;
   }).join('');
 
-  // Usage history
   const histEl = document.getElementById('usage-history');
   if (user.usageLog.length === 0) {
     histEl.innerHTML = '<p style="color:var(--text-muted);font-size:0.9rem;">No usage yet.</p>';
@@ -460,7 +490,6 @@ function applyTheme(name, mode) {
   document.documentElement.style.setProperty('--accent-light', t.accentLight);
   document.documentElement.style.setProperty('--accent-dark', t.accentDark);
 
-  // Update text and border colours for light/dark
   if (mode === 'light') {
     document.documentElement.style.setProperty('--text', '#3a3a3a');
     document.documentElement.style.setProperty('--text-muted', '#888');
@@ -486,13 +515,12 @@ function renderThemePicker(current) {
   ).join('');
 }
 
-function setTheme(name) {
+async function setTheme(name) {
   const user = getCurrentUser();
   user.theme = name;
-  updateUser(user);
+  await updateUser(user);
   applyTheme(name, getMode(user));
   renderThemePicker(name);
-  // Also update admin theme picker if visible
   const adminPicker = document.getElementById('admin-theme-picker');
   if (adminPicker) {
     adminPicker.innerHTML = Object.entries(THEMES_DARK).map(([n, t]) =>
@@ -504,16 +532,15 @@ function setTheme(name) {
   }
 }
 
-function setMode(mode) {
+async function setMode(mode) {
   const user = getCurrentUser();
   user.mode = mode;
-  updateUser(user);
+  await updateUser(user);
   applyTheme(user.theme || 'pink', mode);
   updateModeButtons(mode);
 }
 
 function updateModeButtons(mode) {
-  // Update both user and admin mode buttons
   const pairs = [
     ['btn-dark-mode', 'btn-light-mode'],
     ['admin-btn-dark-mode', 'admin-btn-light-mode']
@@ -536,7 +563,6 @@ function adminSettings() {
   const panel = document.getElementById('admin-settings-panel');
   panel.classList.toggle('hidden');
   if (!panel.classList.contains('hidden')) {
-    // Render admin theme picker
     const user = getCurrentUser();
     const el = document.getElementById('admin-theme-picker');
     const current = user.theme || 'pink';
@@ -550,7 +576,9 @@ function adminSettings() {
 }
 
 // ==================== ADMIN DASHBOARD ====================
-function renderAdmin() {
+async function renderAdmin() {
+  // Reload from Gist to get latest data from all devices
+  await loadDB();
   const profiles = getProfiles().filter(p => !p.isAdmin);
   const bannerEl = document.getElementById('admin-overtime-banners');
   const bodyEl = document.getElementById('admin-users-body');
@@ -619,12 +647,12 @@ function renderAdmin() {
 }
 
 // ==================== DELETE PROFILE ====================
-function deleteProfile() {
+async function deleteProfile() {
   const user = getCurrentUser();
   if (!user) return;
   if (!confirm(`Are you sure you want to delete the profile "${user.name}"? This cannot be undone.`)) return;
-  const profiles = getProfiles().filter(p => p.id !== user.id);
-  saveProfiles(profiles);
+  db.profiles = db.profiles.filter(p => p.id !== user.id);
+  await saveDB();
   localStorage.removeItem('im_currentUser');
   cancelTimer();
   showScreen('screen-auth');
@@ -632,8 +660,10 @@ function deleteProfile() {
 }
 
 // ==================== INIT ====================
-(function init() {
+(async function init() {
   document.getElementById('version-badge').textContent = 'v' + APP_VERSION;
+  await loadDB();
+  document.getElementById('loading-overlay').remove();
   const user = getCurrentUser();
   if (user) {
     enterApp();
