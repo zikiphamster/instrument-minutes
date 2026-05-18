@@ -242,8 +242,7 @@ function timerFinished() {
   document.getElementById('timer-running').classList.add('hidden');
   document.getElementById('timer-finished').classList.remove('hidden');
 
-  // Show educational button only when no minutes left
-  document.getElementById('btn-educational').classList.toggle('hidden', user.minutesBank > 0);
+
 
   refreshApp();
 }
