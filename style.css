@@ -68,6 +68,7 @@ input[type="text"], input[type="number"], input[type="password"] {
   border-radius: 10px; font-size: 0.95rem;
   outline: none; transition: border 0.2s;
   background: var(--bg);
+  color: var(--text);
 }
 input:focus { border-color: var(--accent); }
 label { display: block; font-weight: 600; margin-bottom: 5px; font-size: 0.9rem; }

@@ -151,6 +151,13 @@
     <!-- ---- Settings Tab ---- -->
     <div id="tab-settings" class="tab-content hidden">
       <div class="card">
+        <h2>Mode</h2>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-sm" id="btn-dark-mode" onclick="setMode('dark')">Dark</button>
+          <button class="btn btn-sm btn-outline" id="btn-light-mode" onclick="setMode('light')">Light</button>
+        </div>
+      </div>
+      <div class="card">
         <h2>Choose Theme</h2>
         <div class="theme-picker" id="theme-picker"></div>
       </div>

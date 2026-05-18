@@ -113,7 +113,9 @@ function refreshApp() {
   document.getElementById('timer-max-note').textContent =
     user.minutesBank > 0 ? `Max: ${user.minutesBank} minutes` : 'No minutes available — log some practice first!';
   document.getElementById('timer-input').max = user.minutesBank;
-  applyTheme(user.theme || 'pink');
+  const mode = getMode(user);
+  applyTheme(user.theme || 'pink', mode);
+  updateModeButtons(mode);
   renderThemePicker(user.theme || 'pink');
   renderPracticeHistory();
 }
@@ -248,7 +250,13 @@ function timerFinished() {
 
 function dismissTimer() {
   stopAlarm();
-  clearInterval(overtimeInterval); overtimeInterval = null;
+  // Only stop overtime tracking if user has minutes left
+  const user = getCurrentUser();
+  if (user && user.minutesBank > 0) {
+    clearInterval(overtimeInterval); overtimeInterval = null;
+    hideUserOvertimeBanner();
+  }
+  // If minutesBank is 0, overtime tracking continues in the background
   document.getElementById('timer-finished').classList.add('hidden');
   document.getElementById('timer-setup').classList.remove('hidden');
   document.getElementById('timer-input').value = '';
@@ -266,12 +274,14 @@ function educationalBypass() {
 }
 
 // ==================== OVERTIME TRACKING ====================
+const OVERTIME_THRESHOLD = 60; // seconds (set to 60 for testing, change to 600 for production)
+
 function startOvertimeTracking() {
   overtimeSeconds = 0;
   clearInterval(overtimeInterval);
   overtimeInterval = setInterval(() => {
     overtimeSeconds++;
-    if (overtimeSeconds >= 600) { // 10 minutes = 600 seconds
+    if (overtimeSeconds >= OVERTIME_THRESHOLD) {
       clearInterval(overtimeInterval);
       overtimeInterval = null;
       flagOvertime();
@@ -286,6 +296,35 @@ function flagOvertime() {
     user.usageLog[user.usageLog.length - 1].overtime = true;
   }
   updateUser(user);
+
+  // Notify the user
+  sendNotification('Instrument Minutes', 'You have gone over your screen time limit!');
+
+  // Show overtime banner on user's page
+  showUserOvertimeBanner();
+}
+
+function showUserOvertimeBanner() {
+  let banner = document.getElementById('user-overtime-banner');
+  if (!banner) {
+    banner = document.createElement('div');
+    banner.id = 'user-overtime-banner';
+    banner.className = 'overtime-banner';
+    banner.style.cursor = 'pointer';
+    banner.onclick = function() { banner.classList.add('hidden'); };
+    // Insert at top of the app screen, after the profile header
+    const appScreen = document.getElementById('screen-app');
+    const nav = appScreen.querySelector('.nav');
+    appScreen.insertBefore(banner, nav);
+  }
+  banner.textContent = 'You have exceeded your screen time! You stayed on for more than ' +
+    Math.round(OVERTIME_THRESHOLD / 60) + ' minute(s) past your timer with no minutes left.';
+  banner.classList.remove('hidden');
+}
+
+function hideUserOvertimeBanner() {
+  const banner = document.getElementById('user-overtime-banner');
+  if (banner) banner.classList.add('hidden');
 }
 
 // ==================== AUDIO ====================
@@ -379,7 +418,7 @@ function renderStats() {
 }
 
 // ==================== THEMES ====================
-const THEMES = {
+const THEMES_DARK = {
   pink:   { bg: '#1a1a2e', bg2: '#222244', accent: '#f2a7c3', accentLight: '#2e2848', accentDark: '#f0c0d4' },
   red:    { bg: '#1e1a1a', bg2: '#2e2222', accent: '#f28a8a', accentLight: '#3a2828', accentDark: '#f0b0b0' },
   orange: { bg: '#1e1c1a', bg2: '#2e2822', accent: '#f2b880', accentLight: '#3a3028', accentDark: '#f0d0a0' },
@@ -389,18 +428,48 @@ const THEMES = {
   purple: { bg: '#1c1a1e', bg2: '#28222e', accent: '#b080f2', accentLight: '#30283a', accentDark: '#d0a0f0' },
 };
 
-function applyTheme(name) {
-  const t = THEMES[name] || THEMES.pink;
+const THEMES_LIGHT = {
+  pink:   { bg: '#fef6fb', bg2: '#fff', accent: '#f2a7c3', accentLight: '#fce4ef', accentDark: '#d4809e' },
+  red:    { bg: '#fef2f2', bg2: '#fff', accent: '#f28a8a', accentLight: '#fde8e8', accentDark: '#c96262' },
+  orange: { bg: '#fef7f0', bg2: '#fff', accent: '#f2b880', accentLight: '#fdecd8', accentDark: '#c9925a' },
+  yellow: { bg: '#fefcf0', bg2: '#fff', accent: '#f2d680', accentLight: '#fdf4d8', accentDark: '#b8a040' },
+  green:  { bg: '#f2fef6', bg2: '#fff', accent: '#81c784', accentLight: '#ddf5de', accentDark: '#5a9e5d' },
+  blue:   { bg: '#f0f6fe', bg2: '#fff', accent: '#80b8f2', accentLight: '#d8ecfd', accentDark: '#5a8ec9' },
+  purple: { bg: '#f6f0fe', bg2: '#fff', accent: '#b080f2', accentLight: '#e8d8fd', accentDark: '#8a5ac9' },
+};
+
+function getMode(user) {
+  return (user && user.mode) || 'dark';
+}
+
+function applyTheme(name, mode) {
+  const themes = mode === 'light' ? THEMES_LIGHT : THEMES_DARK;
+  const t = themes[name] || themes.pink;
   document.documentElement.style.setProperty('--bg', t.bg);
   document.documentElement.style.setProperty('--bg2', t.bg2);
   document.documentElement.style.setProperty('--accent', t.accent);
   document.documentElement.style.setProperty('--accent-light', t.accentLight);
   document.documentElement.style.setProperty('--accent-dark', t.accentDark);
+
+  // Update text and border colours for light/dark
+  if (mode === 'light') {
+    document.documentElement.style.setProperty('--text', '#3a3a3a');
+    document.documentElement.style.setProperty('--text-muted', '#888');
+    document.documentElement.style.setProperty('--border', '#eee');
+    document.documentElement.style.setProperty('--shadow', '0 2px 16px rgba(0,0,0,0.06)');
+    document.documentElement.style.setProperty('--yellow-banner', '#fff3cd');
+  } else {
+    document.documentElement.style.setProperty('--text', '#e8e8f0');
+    document.documentElement.style.setProperty('--text-muted', '#9999aa');
+    document.documentElement.style.setProperty('--border', '#333355');
+    document.documentElement.style.setProperty('--shadow', '0 2px 16px rgba(0,0,0,0.3)');
+    document.documentElement.style.setProperty('--yellow-banner', '#3d3520');
+  }
 }
 
 function renderThemePicker(current) {
   const el = document.getElementById('theme-picker');
-  el.innerHTML = Object.entries(THEMES).map(([name, t]) =>
+  el.innerHTML = Object.entries(THEMES_DARK).map(([name, t]) =>
     `<div class="theme-dot ${name === current ? 'active' : ''}"
           style="background:${t.accent}"
           onclick="setTheme('${name}')"
@@ -412,8 +481,28 @@ function setTheme(name) {
   const user = getCurrentUser();
   user.theme = name;
   updateUser(user);
-  applyTheme(name);
+  applyTheme(name, getMode(user));
   renderThemePicker(name);
+}
+
+function setMode(mode) {
+  const user = getCurrentUser();
+  user.mode = mode;
+  updateUser(user);
+  applyTheme(user.theme || 'pink', mode);
+  updateModeButtons(mode);
+}
+
+function updateModeButtons(mode) {
+  const darkBtn = document.getElementById('btn-dark-mode');
+  const lightBtn = document.getElementById('btn-light-mode');
+  if (mode === 'dark') {
+    darkBtn.className = 'btn btn-sm';
+    lightBtn.className = 'btn btn-sm btn-outline';
+  } else {
+    darkBtn.className = 'btn btn-sm btn-outline';
+    lightBtn.className = 'btn btn-sm';
+  }
 }
 
 // ==================== ADMIN DASHBOARD ====================
