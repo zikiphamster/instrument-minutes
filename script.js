@@ -249,13 +249,18 @@ function timerFinished() {
 
 function dismissTimer() {
   stopAlarm();
-  // Only stop overtime tracking if user has minutes left
   const user = getCurrentUser();
   if (user && user.minutesBank > 0) {
+    // User has minutes left — stop overtime tracking
     clearInterval(overtimeInterval); overtimeInterval = null;
     hideUserOvertimeBanner();
+  } else if (user && user.minutesBank <= 0 && !overtimeInterval) {
+    // User has no minutes and overtime isn't already running — start it now
+    console.log('[Overtime] Starting overtime tracking after dismiss (0 balance)');
+    startOvertimeTracking();
+  } else {
+    console.log('[Overtime] Overtime interval already running, seconds:', overtimeSeconds);
   }
-  // If minutesBank is 0, overtime tracking continues in the background
   document.getElementById('timer-finished').classList.add('hidden');
   document.getElementById('timer-setup').classList.remove('hidden');
   document.getElementById('timer-input').value = '';
@@ -278,11 +283,16 @@ const OVERTIME_THRESHOLD = 60; // seconds (set to 60 for testing, change to 600 
 function startOvertimeTracking() {
   overtimeSeconds = 0;
   clearInterval(overtimeInterval);
+  console.log('[Overtime] Tracking started, threshold:', OVERTIME_THRESHOLD, 'seconds');
   overtimeInterval = setInterval(() => {
     overtimeSeconds++;
+    if (overtimeSeconds % 10 === 0) {
+      console.log('[Overtime] Elapsed:', overtimeSeconds, '/', OVERTIME_THRESHOLD, 'seconds');
+    }
     if (overtimeSeconds >= OVERTIME_THRESHOLD) {
       clearInterval(overtimeInterval);
       overtimeInterval = null;
+      console.log('[Overtime] Threshold reached! Flagging overtime.');
       flagOvertime();
     }
   }, 1000);
