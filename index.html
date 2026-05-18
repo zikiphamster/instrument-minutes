@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Instrument Minutes</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ========== LOGIN / SIGNUP SCREEN ========== -->
+  <div id="screen-auth" class="screen active">
+    <div class="text-center" style="margin-bottom: 24px;">
+      <h1>Instrument Minutes</h1>
+      <p style="color:var(--text-muted);font-size:0.92rem;">Earn screen time by practicing your instrument</p>
+    </div>
+
+    <div class="card" id="auth-login">
+      <h2>Log In</h2>
+      <div class="field">
+        <label for="login-name">Name</label>
+        <input type="text" id="login-name" placeholder="Your name">
+      </div>
+      <div class="field">
+        <label for="login-pin">PIN (optional)</label>
+        <input type="password" id="login-pin" placeholder="Leave blank if none" maxlength="6">
+      </div>
+      <button class="btn btn-block" onclick="login()">Log In</button>
+      <p class="text-center mt-16" style="font-size:0.88rem;">
+        No account? <a href="#" onclick="showSignup()" style="color:var(--accent-dark);font-weight:600;">Create Profile</a>
+      </p>
+    </div>
+
+    <div class="card hidden" id="auth-signup">
+      <h2>Create Profile</h2>
+      <div class="field">
+        <label for="signup-name">Name</label>
+        <input type="text" id="signup-name" placeholder="Your name">
+      </div>
+      <div class="field">
+        <label for="signup-pin">PIN (optional)</label>
+        <input type="password" id="signup-pin" placeholder="4-6 digits" maxlength="6">
+      </div>
+      <div class="checkbox-row">
+        <input type="checkbox" id="signup-admin">
+        <label for="signup-admin" style="margin:0;">Admin Account</label>
+      </div>
+      <button class="btn btn-block" onclick="signup()">Create Profile</button>
+      <p class="text-center mt-16" style="font-size:0.88rem;">
+        Have an account? <a href="#" onclick="showLogin()" style="color:var(--accent-dark);font-weight:600;">Log In</a>
+      </p>
+    </div>
+
+    <div id="auth-error" class="message message-danger hidden"></div>
+  </div>
+
+  <!-- ========== MAIN APP SCREEN ========== -->
+  <div id="screen-app" class="screen">
+
+    <div class="profile-header">
+      <div>
+        <div class="profile-name" id="display-name"></div>
+        <div style="font-size:0.82rem;color:var(--text-muted);" id="display-role"></div>
+      </div>
+      <div>
+        <button class="btn btn-sm btn-outline" id="btn-admin-dash" onclick="showScreen('screen-admin')" style="display:none;">Admin</button>
+        <button class="btn btn-sm btn-outline" onclick="logout()">Log Out</button>
+      </div>
+    </div>
+
+    <!-- Nav tabs -->
+    <div class="nav">
+      <button class="active" onclick="switchTab('tab-timer', this)">Timer</button>
+      <button onclick="switchTab('tab-practice', this)">Practice</button>
+      <button onclick="switchTab('tab-stats', this)">Stats</button>
+      <button onclick="switchTab('tab-settings', this)">Settings</button>
+    </div>
+
+    <!-- ---- Timer Tab ---- -->
+    <div id="tab-timer" class="tab-content">
+      <div class="card">
+        <div class="balance-display">
+          <div class="balance-number" id="balance-minutes">0</div>
+          <div class="balance-label">minutes available</div>
+        </div>
+
+        <div id="timer-setup">
+          <div class="field">
+            <label for="timer-input">Set timer (minutes)</label>
+            <input type="number" id="timer-input" min="1" placeholder="Enter minutes">
+          </div>
+          <div id="timer-max-note" style="font-size:0.82rem;color:var(--text-muted);margin-bottom:12px;"></div>
+          <button class="btn btn-block btn-success" onclick="startTimer()">Start Timer</button>
+        </div>
+
+        <div id="timer-running" class="hidden">
+          <div class="timer-display" id="timer-countdown">00:00</div>
+          <div class="timer-controls">
+            <button class="btn" id="btn-pause" onclick="togglePause()">Pause</button>
+            <button class="btn btn-danger" onclick="cancelTimer()">Cancel</button>
+          </div>
+        </div>
+
+        <div id="timer-finished" class="hidden">
+          <div id="timer-end-message" class="message"></div>
+          <div class="timer-controls mt-10">
+            <button class="btn" onclick="dismissTimer()">OK</button>
+            <button class="btn btn-outline" id="btn-educational" onclick="educationalBypass()">Educational Purposes</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ---- Practice Tab ---- -->
+    <div id="tab-practice" class="tab-content hidden">
+      <div class="card">
+        <h2>Log Practice</h2>
+        <div class="field-row">
+          <div class="field">
+            <label for="practice-hours">Hours</label>
+            <input type="number" id="practice-hours" min="0" value="0">
+          </div>
+          <div class="field">
+            <label for="practice-mins">Minutes</label>
+            <input type="number" id="practice-mins" min="0" max="59" value="0">
+          </div>
+        </div>
+        <button class="btn btn-block" onclick="logPractice()">Add Minutes</button>
+      </div>
+
+      <div class="card">
+        <h3>Practice History</h3>
+        <div id="practice-history"></div>
+      </div>
+    </div>
+
+    <!-- ---- Stats Tab ---- -->
+    <div id="tab-stats" class="tab-content hidden">
+      <div class="card">
+        <h2>This Week's Screen Usage</h2>
+        <div class="chart" id="usage-chart"></div>
+      </div>
+      <div class="card">
+        <h3>Usage History</h3>
+        <div id="usage-history"></div>
+      </div>
+    </div>
+
+    <!-- ---- Settings Tab ---- -->
+    <div id="tab-settings" class="tab-content hidden">
+      <div class="card">
+        <h2>Choose Theme</h2>
+        <div class="theme-picker" id="theme-picker"></div>
+      </div>
+      <div class="card">
+        <h2>Account</h2>
+        <p style="font-size:0.9rem;color:var(--text-muted);margin-bottom:14px;">
+          Deleting your profile will permanently remove all your practice logs, usage history, and minutes.
+        </p>
+        <button class="btn btn-danger btn-block" onclick="deleteProfile()">Delete Profile</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ========== ADMIN SCREEN ========== -->
+  <div id="screen-admin" class="screen">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;">
+      <h1>Admin Dashboard</h1>
+      <button class="btn btn-sm btn-outline" onclick="showScreen('screen-app')">Back</button>
+    </div>
+
+    <div id="admin-overtime-banners"></div>
+
+    <div class="card">
+      <h2>All Users</h2>
+      <div style="overflow-x:auto;">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Earned</th>
+              <th>Used</th>
+              <th>Left</th>
+              <th>Overtime</th>
+            </tr>
+          </thead>
+          <tbody id="admin-users-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Weekly Usage Per User</h2>
+      <div id="admin-weekly"></div>
+    </div>
+  </div>
+
+</div>
+
+<script src="script.js"></script>
+
+</body>
+</html>
