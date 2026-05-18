@@ -45,4 +45,9 @@ Two parallel theme objects (`THEMES_DARK` and `THEMES_LIGHT`) each define 7 past
 
 ## Versioning
 
-**Always bump `APP_VERSION` at the top of `script.js` when making any code changes.** Use semver: patch for fixes, minor for features, major for breaking changes. The version displays as a badge in the bottom-right corner of the page.
+**Always bump `APP_VERSION` at the top of `script.js` when making any code changes.** Format is `MAJOR.MINOR.PATCH`:
+- **PATCH** (e.g. 1.1.0 → 1.1.1): bug fixes
+- **MINOR** (e.g. 1.1.1 → 1.2.0): new features
+- **MAJOR** (e.g. 1.2.0 → 2.0.0): breaking changes
+
+The version displays as a badge in the bottom-right corner of the page.
