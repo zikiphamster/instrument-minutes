@@ -1,5 +1,5 @@
 // ==================== VERSION ====================
-const APP_VERSION = '1.2.0';
+const APP_VERSION = '1.3.0';
 
 // ==================== DATA LAYER (GitHub Gist) ====================
 let db = { profiles: [] }; // in-memory cache
@@ -193,14 +193,27 @@ function renderPracticeHistory() {
     el.innerHTML = '<p style="color:var(--text-muted);font-size:0.9rem;">No practice logged yet.</p>';
     return;
   }
-  el.innerHTML = user.practiceLog.slice().reverse().map(e => {
+  const reversed = user.practiceLog.slice().reverse();
+  el.innerHTML = reversed.map((e, ri) => {
+    const idx = user.practiceLog.length - 1 - ri; // original index
     const d = new Date(e.date);
     const dateStr = d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
     const h = Math.floor(e.minutes / 60);
     const m = e.minutes % 60;
     const dur = h > 0 ? `${h}h ${m}m` : `${m}m`;
-    return `<div class="history-item"><span>${dateStr}</span><span style="font-weight:600;color:var(--accent-dark);">+${dur}</span></div>`;
+    return `<div class="history-item"><span>${dateStr}</span><span style="display:flex;align-items:center;gap:8px;"><span style="font-weight:600;color:var(--accent-dark);">+${dur}</span><button class="btn btn-sm btn-danger" onclick="deletePractice(${idx})" style="padding:2px 8px;font-size:0.75rem;">✕</button></span></div>`;
   }).join('');
+}
+
+async function deletePractice(idx) {
+  const user = getCurrentUser();
+  if (!user || idx < 0 || idx >= user.practiceLog.length) return;
+  const entry = user.practiceLog[idx];
+  if (!confirm(`Remove ${entry.minutes} minutes of practice from ${new Date(entry.date).toLocaleDateString()}?`)) return;
+  user.practiceLog.splice(idx, 1);
+  user.minutesBank = Math.max(0, user.minutesBank - entry.minutes);
+  await updateUser(user);
+  refreshApp();
 }
 
 // ==================== TIMER ====================
