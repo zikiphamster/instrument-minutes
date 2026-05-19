@@ -1,5 +1,9 @@
 // ==================== VERSION ====================
-const APP_VERSION = '1.3.0';
+const APP_VERSION = '1.3.1';
+
+// ==================== CONFIG ====================
+const GIST_ID = 'ab0f0b0a12593cccc0efd7db998410e4';
+const GITHUB_TOKEN = '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';
 
 // ==================== DATA LAYER (GitHub Gist) ====================
 let db = { profiles: [] }; // in-memory cache
