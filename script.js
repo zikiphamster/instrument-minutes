@@ -1,5 +1,5 @@
 // ==================== VERSION ====================
-const APP_VERSION = '1.6.3';
+const APP_VERSION = '1.6.4';
 
 // ==================== CONFIG ====================
 const GIST_ID = 'ab0f0b0a12593cccc0efd7db998410e4';
