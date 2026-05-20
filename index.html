@@ -64,7 +64,14 @@
         <div class="profile-name" id="display-name"></div>
         <div style="font-size:0.82rem;color:var(--text-muted);" id="display-role"></div>
       </div>
-      <div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div class="streak-badge" id="streak-badge" onclick="showScreen('screen-streak')" title="Practice Streak">
+          <svg class="streak-icon" id="streak-flame" viewBox="0 0 24 24" width="22" height="22" fill="none">
+            <path d="M12 2C10.5 6 6 8.5 6 13a6 6 0 0 0 12 0c0-4.5-4.5-7-6-11z" fill="#888" stroke="none"/>
+            <path d="M12 12c-1 2-3 3-3 5a3 3 0 0 0 6 0c0-2-2-3-3-5z" fill="#aaa" stroke="none"/>
+          </svg>
+          <span id="streak-count">0</span>
+        </div>
         <button class="btn btn-sm btn-outline" id="btn-admin-dash" onclick="showScreen('screen-admin')" style="display:none;">Admin</button>
         <button class="btn btn-sm btn-outline" onclick="logout()">Log Out</button>
       </div>
@@ -184,6 +191,51 @@
       </div>
     </div>
 
+  </div>
+
+  <!-- ========== STREAK SCREEN ========== -->
+  <div id="screen-streak" class="screen">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;">
+      <h1>Practice Streak</h1>
+      <button class="btn btn-sm btn-outline" onclick="showScreen('screen-app')">Back</button>
+    </div>
+
+    <div class="card" style="text-align:center;">
+      <div class="streak-display">
+        <svg id="streak-flame-big" viewBox="0 0 24 24" width="64" height="64" fill="none">
+          <path d="M12 2C10.5 6 6 8.5 6 13a6 6 0 0 0 12 0c0-4.5-4.5-7-6-11z" fill="#888" stroke="none"/>
+          <path d="M12 12c-1 2-3 3-3 5a3 3 0 0 0 6 0c0-2-2-3-3-5z" fill="#aaa" stroke="none"/>
+        </svg>
+        <div class="streak-big-number" id="streak-big-count">0</div>
+        <div style="color:var(--text-muted);font-size:0.9rem;">day streak</div>
+      </div>
+    </div>
+
+    <div class="nav">
+      <button class="active" onclick="switchStreakTab('streak-calendar', this)">Calendar</button>
+      <button onclick="switchStreakTab('streak-rewards', this)">Rewards</button>
+    </div>
+
+    <div id="streak-calendar" class="streak-tab-content">
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+          <button class="btn btn-sm btn-outline" onclick="streakCalendarNav(-1)">←</button>
+          <h3 id="calendar-month-label" style="margin:0;"></h3>
+          <button class="btn btn-sm btn-outline" onclick="streakCalendarNav(1)">→</button>
+        </div>
+        <div class="calendar-grid" id="calendar-grid"></div>
+      </div>
+    </div>
+
+    <div id="streak-rewards" class="streak-tab-content hidden">
+      <div class="card">
+        <h2>Milestone Rewards</h2>
+        <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:14px;">
+          Reach streak milestones to earn bonus minutes!
+        </p>
+        <div id="milestones-list"></div>
+      </div>
+    </div>
   </div>
 
   <!-- ========== ADMIN SCREEN ========== -->

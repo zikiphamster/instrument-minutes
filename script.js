@@ -1,5 +1,5 @@
 // ==================== VERSION ====================
-const APP_VERSION = '1.5.2';
+const APP_VERSION = '1.6.0';
 
 // ==================== CONFIG ====================
 const GIST_ID = 'ab0f0b0a12593cccc0efd7db998410e4';
@@ -98,7 +98,10 @@ async function signup() {
     name, pin, isAdmin, theme: 'pink',
     minutesBank: 0,
     practiceLog: [],
-    usageLog: []
+    usageLog: [],
+    streak: 0,
+    lastPracticeDate: null,
+    claimedMilestones: []
   };
   db.profiles.push(user);
   await saveDB();
@@ -134,6 +137,12 @@ function showScreen(id) {
   document.getElementById(id).classList.add('active');
   if (id === 'screen-admin') renderAdmin();
   if (id === 'screen-app') refreshApp();
+  if (id === 'screen-streak') {
+    calendarViewDate = new Date();
+    refreshStreakDisplay();
+    renderStreakCalendar();
+    renderMilestones();
+  }
 }
 
 function switchTab(tabId, btn) {
@@ -161,6 +170,8 @@ function enterApp() {
 function refreshApp() {
   const user = getCurrentUser();
   if (!user) { showScreen('screen-auth'); return; }
+  // Check streak reset on load
+  checkStreakReset(user);
   document.getElementById('display-name').textContent = user.name;
   document.getElementById('display-role').textContent = user.isAdmin ? 'Admin' : 'User';
   document.getElementById('btn-admin-dash').style.display = user.isAdmin ? '' : 'none';
@@ -173,6 +184,7 @@ function refreshApp() {
   updateModeButtons(mode);
   renderThemePicker(user.theme || 'pink');
   renderPracticeHistory();
+  refreshStreakDisplay();
 }
 
 // ==================== PRACTICE LOGGING ====================
@@ -184,6 +196,7 @@ async function logPractice() {
   const user = getCurrentUser();
   user.minutesBank += total;
   user.practiceLog.push({ date: new Date().toISOString(), minutes: total });
+  updateStreak(user);
   await updateUser(user);
   document.getElementById('practice-hours').value = 0;
   document.getElementById('practice-mins').value = 0;
@@ -218,6 +231,217 @@ async function deletePractice(idx) {
   user.practiceLog.splice(idx, 1);
   user.minutesBank = Math.max(0, user.minutesBank - entry.minutes);
   await updateUser(user);
+  refreshApp();
+}
+
+// ==================== STREAK ====================
+const MILESTONES = [
+  { days: 10, reward: 5 },
+  { days: 20, reward: 6 },
+  { days: 30, reward: 7 },
+  { days: 50, reward: 8 },
+  { days: 75, reward: 9 },
+  { days: 100, reward: 10 },
+  { days: 150, reward: 11 },
+  { days: 200, reward: 12 },
+  { days: 300, reward: 13 },
+  { days: 365, reward: 14 },
+];
+
+let calendarViewDate = new Date(); // tracks which month is displayed
+
+function getTodayStr() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function getYesterdayStr() {
+  const d = new Date();
+  d.setDate(d.getDate() - 1);
+  return d.toISOString().slice(0, 10);
+}
+
+function updateStreak(user) {
+  const today = getTodayStr();
+  if (!user.lastPracticeDate) {
+    user.streak = 1;
+    user.lastPracticeDate = today;
+  } else if (user.lastPracticeDate === today) {
+    // Already practiced today — no change
+  } else if (user.lastPracticeDate === getYesterdayStr()) {
+    user.streak = (user.streak || 0) + 1;
+    user.lastPracticeDate = today;
+  } else {
+    // Missed day(s) — reset
+    user.streak = 1;
+    user.lastPracticeDate = today;
+  }
+  // Ensure claimedMilestones exists
+  if (!user.claimedMilestones) user.claimedMilestones = [];
+}
+
+function checkStreakReset(user) {
+  if (!user.lastPracticeDate) return;
+  const today = getTodayStr();
+  const yesterday = getYesterdayStr();
+  if (user.lastPracticeDate !== today && user.lastPracticeDate !== yesterday) {
+    user.streak = 0;
+  }
+  if (!user.claimedMilestones) user.claimedMilestones = [];
+}
+
+function refreshStreakDisplay() {
+  const user = getCurrentUser();
+  if (!user) return;
+  const streak = user.streak || 0;
+  const active = streak > 0;
+
+  document.getElementById('streak-count').textContent = streak;
+  const bigCount = document.getElementById('streak-big-count');
+  if (bigCount) bigCount.textContent = streak;
+
+  // Update badge background
+  const badge = document.getElementById('streak-badge');
+  if (badge) {
+    badge.style.background = active
+      ? 'linear-gradient(135deg, #ff6b35, #ff4500)'
+      : 'linear-gradient(135deg, #666, #555)';
+    badge.style.boxShadow = active
+      ? '0 2px 8px rgba(255, 69, 0, 0.3)'
+      : '0 2px 8px rgba(0, 0, 0, 0.2)';
+  }
+
+  // Update small flame SVG
+  const flame = document.getElementById('streak-flame');
+  if (flame) {
+    const paths = flame.querySelectorAll('path');
+    if (paths.length >= 2) {
+      paths[0].setAttribute('fill', active ? '#ff6b35' : '#888');
+      paths[1].setAttribute('fill', active ? '#ffcc02' : '#aaa');
+    }
+  }
+
+  // Update big flame SVG
+  const flameBig = document.getElementById('streak-flame-big');
+  if (flameBig) {
+    const paths = flameBig.querySelectorAll('path');
+    if (paths.length >= 2) {
+      paths[0].setAttribute('fill', active ? '#ff6b35' : '#888');
+      paths[1].setAttribute('fill', active ? '#ffcc02' : '#aaa');
+    }
+  }
+
+  // Update big number color
+  if (bigCount) {
+    bigCount.style.color = active ? '#ff6b35' : 'var(--text-muted)';
+  }
+}
+
+function switchStreakTab(tabId, btn) {
+  document.querySelectorAll('.streak-tab-content').forEach(t => t.classList.add('hidden'));
+  document.getElementById(tabId).classList.remove('hidden');
+  const nav = btn.parentElement;
+  nav.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+// Calendar
+function renderStreakCalendar() {
+  const user = getCurrentUser();
+  if (!user) return;
+
+  const year = calendarViewDate.getFullYear();
+  const month = calendarViewDate.getMonth();
+  const label = calendarViewDate.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+  document.getElementById('calendar-month-label').textContent = label;
+
+  // Get practiced dates for this month
+  const practicedDates = new Set();
+  (user.practiceLog || []).forEach(e => {
+    const d = new Date(e.date);
+    if (d.getFullYear() === year && d.getMonth() === month) {
+      practicedDates.add(d.getDate());
+    }
+  });
+
+  const todayStr = getTodayStr();
+  const todayDate = new Date();
+  const isCurrentMonth = todayDate.getFullYear() === year && todayDate.getMonth() === month;
+
+  const firstDay = new Date(year, month, 1);
+  const lastDay = new Date(year, month + 1, 0);
+  const startDow = (firstDay.getDay() + 6) % 7; // Mon=0
+
+  const headers = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
+  let html = headers.map(h => `<div class="calendar-day-header">${h}</div>`).join('');
+
+  // Empty cells before first day
+  for (let i = 0; i < startDow; i++) {
+    html += '<div class="calendar-day"></div>';
+  }
+
+  for (let day = 1; day <= lastDay.getDate(); day++) {
+    const practiced = practicedDates.has(day);
+    const isToday = isCurrentMonth && day === todayDate.getDate();
+    const classes = ['calendar-day'];
+    if (practiced) classes.push('practiced');
+    if (isToday) classes.push('today');
+    html += `<div class="${classes.join(' ')}">${day}</div>`;
+  }
+
+  document.getElementById('calendar-grid').innerHTML = html;
+}
+
+function streakCalendarNav(dir) {
+  calendarViewDate.setMonth(calendarViewDate.getMonth() + dir);
+  renderStreakCalendar();
+}
+
+// Milestones
+function renderMilestones() {
+  const user = getCurrentUser();
+  if (!user) return;
+  const streak = user.streak || 0;
+  const claimed = user.claimedMilestones || [];
+
+  const el = document.getElementById('milestones-list');
+  el.innerHTML = MILESTONES.map(m => {
+    const isClaimed = claimed.includes(m.days);
+    const isClaimable = streak >= m.days && !isClaimed;
+    const isLocked = streak < m.days && !isClaimed;
+
+    let statusHtml;
+    if (isClaimed) {
+      statusHtml = '<span style="color:#81c784;font-weight:700;">Claimed ✓</span>';
+    } else if (isClaimable) {
+      statusHtml = `<button class="btn btn-sm btn-success" onclick="claimMilestone(${m.days})">Claim</button>`;
+    } else {
+      statusHtml = `<span style="color:var(--text-muted);font-size:0.82rem;">${m.days - streak} days left</span>`;
+    }
+
+    const itemClass = 'milestone-item' + (isLocked ? ' milestone-locked' : '') + (isClaimed ? ' milestone-claimed' : '');
+    return `<div class="${itemClass}">
+      <div class="milestone-info">
+        <div class="milestone-days">${m.days} Day Streak</div>
+        <div class="milestone-reward">+${m.reward} bonus minutes</div>
+      </div>
+      <div>${statusHtml}</div>
+    </div>`;
+  }).join('');
+}
+
+async function claimMilestone(days) {
+  const user = getCurrentUser();
+  if (!user) return;
+  if (!user.claimedMilestones) user.claimedMilestones = [];
+  if (user.claimedMilestones.includes(days)) return;
+
+  const milestone = MILESTONES.find(m => m.days === days);
+  if (!milestone || (user.streak || 0) < days) return;
+
+  user.claimedMilestones.push(days);
+  user.minutesBank += milestone.reward;
+  await updateUser(user);
+  renderMilestones();
   refreshApp();
 }
 
@@ -292,6 +516,7 @@ async function swAddMinutes() {
   const user = getCurrentUser();
   user.minutesBank += totalMins;
   user.practiceLog.push({ date: new Date().toISOString(), minutes: totalMins });
+  updateStreak(user);
   await updateUser(user);
   swReset();
   refreshApp();

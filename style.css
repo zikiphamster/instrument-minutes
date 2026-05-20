@@ -195,6 +195,66 @@ label { display: block; font-weight: 600; margin-bottom: 5px; font-size: 0.9rem;
   opacity: 0.5;
 }
 
+/* Streak badge */
+.streak-badge {
+  display: flex; align-items: center; gap: 4px;
+  background: linear-gradient(135deg, #ff6b35, #ff4500);
+  padding: 4px 12px 4px 8px; border-radius: 20px;
+  cursor: pointer; transition: all 0.2s;
+  box-shadow: 0 2px 8px rgba(255, 69, 0, 0.3);
+}
+.streak-badge:hover { transform: scale(1.08); box-shadow: 0 3px 12px rgba(255, 69, 0, 0.5); }
+.streak-badge:active { transform: scale(0.95); }
+.streak-icon { filter: drop-shadow(0 1px 2px rgba(0,0,0,0.3)); }
+.streak-badge span:last-child {
+  font-weight: 800; font-size: 0.95rem; color: #fff;
+}
+
+/* Streak screen */
+.streak-display { padding: 10px 0; }
+.streak-big-number {
+  font-size: 3.5rem; font-weight: 800; color: #ff6b35;
+  line-height: 1;
+}
+
+/* Streak tabs */
+.streak-tab-content.hidden { display: none !important; }
+
+/* Calendar */
+.calendar-grid {
+  display: grid; grid-template-columns: repeat(7, 1fr);
+  gap: 4px; text-align: center;
+}
+.calendar-day-header {
+  font-size: 0.7rem; font-weight: 700; color: var(--text-muted);
+  padding: 4px 0;
+}
+.calendar-day {
+  aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
+  border-radius: 8px; font-size: 0.82rem; font-weight: 500;
+  color: var(--text-muted);
+}
+.calendar-day.practiced {
+  background: var(--accent); color: #fff; font-weight: 700;
+}
+.calendar-day.today {
+  border: 2px solid var(--accent-dark);
+}
+
+/* Milestones */
+.milestone-item {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 12px 0; border-bottom: 1px solid var(--border);
+}
+.milestone-item:last-child { border-bottom: none; }
+.milestone-info { display: flex; flex-direction: column; gap: 2px; }
+.milestone-days { font-weight: 700; font-size: 1rem; }
+.milestone-reward { font-size: 0.82rem; color: var(--text-muted); }
+.milestone-locked { opacity: 0.4; }
+.milestone-claimed .milestone-days::after {
+  content: ' ✓'; color: #81c784;
+}
+
 /* Utility */
 .text-center { text-align: center; }
 .mt-10 { margin-top: 10px; }
