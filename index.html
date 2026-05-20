@@ -116,6 +116,20 @@
     <!-- ---- Practice Tab ---- -->
     <div id="tab-practice" class="tab-content hidden">
       <div class="card">
+        <h2>Stopwatch</h2>
+        <div class="stopwatch-display" id="stopwatch-display">00:00:00</div>
+        <div class="timer-controls" id="stopwatch-controls">
+          <button class="btn btn-success" id="btn-sw-start" onclick="swStart()">Start</button>
+          <button class="btn" id="btn-sw-pause" onclick="swPause()" style="display:none;">Pause</button>
+          <button class="btn btn-danger" id="btn-sw-reset" onclick="swReset()" style="display:none;">Reset</button>
+        </div>
+        <div id="sw-add-wrap" class="hidden" style="margin-top:14px;">
+          <div id="sw-add-msg" style="text-align:center;font-size:0.9rem;color:var(--text-muted);margin-bottom:10px;"></div>
+          <button class="btn btn-block" onclick="swAddMinutes()">Add to Practice</button>
+        </div>
+      </div>
+
+      <div class="card">
         <h2>Log Practice</h2>
         <div class="field-row">
           <div class="field">

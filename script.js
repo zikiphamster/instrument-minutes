@@ -1,5 +1,5 @@
 // ==================== VERSION ====================
-const APP_VERSION = '1.4.0';
+const APP_VERSION = '1.5.0';
 
 // ==================== CONFIG ====================
 const GIST_ID = 'ab0f0b0a12593cccc0efd7db998410e4';
@@ -219,6 +219,79 @@ async function deletePractice(idx) {
   user.minutesBank = Math.max(0, user.minutesBank - entry.minutes);
   await updateUser(user);
   refreshApp();
+}
+
+// ==================== STOPWATCH ====================
+let swInterval = null;
+let swElapsed = 0; // seconds
+let swRunning = false;
+
+function swStart() {
+  swRunning = true;
+  document.getElementById('btn-sw-start').style.display = 'none';
+  document.getElementById('btn-sw-pause').style.display = '';
+  document.getElementById('btn-sw-reset').style.display = '';
+  document.getElementById('sw-add-wrap').classList.add('hidden');
+  swInterval = setInterval(() => {
+    swElapsed++;
+    swUpdateDisplay();
+  }, 1000);
+}
+
+function swPause() {
+  swRunning = false;
+  clearInterval(swInterval);
+  swInterval = null;
+  document.getElementById('btn-sw-pause').style.display = 'none';
+  document.getElementById('btn-sw-start').textContent = 'Resume';
+  document.getElementById('btn-sw-start').style.display = '';
+
+  const totalMins = Math.floor(swElapsed / 60);
+  const msg = document.getElementById('sw-add-msg');
+  if (totalMins > 0) {
+    const h = Math.floor(totalMins / 60);
+    const m = totalMins % 60;
+    const dur = h > 0 ? `${h}h ${m}m` : `${m}m`;
+    msg.textContent = `Add ${dur} of practice to your balance?`;
+    document.getElementById('sw-add-wrap').classList.remove('hidden');
+  } else {
+    msg.textContent = 'Practice for at least 1 minute to log it.';
+    document.getElementById('sw-add-wrap').classList.remove('hidden');
+    document.querySelector('#sw-add-wrap .btn').style.display = 'none';
+  }
+}
+
+function swReset() {
+  clearInterval(swInterval);
+  swInterval = null;
+  swElapsed = 0;
+  swRunning = false;
+  swUpdateDisplay();
+  document.getElementById('btn-sw-start').textContent = 'Start';
+  document.getElementById('btn-sw-start').style.display = '';
+  document.getElementById('btn-sw-pause').style.display = 'none';
+  document.getElementById('btn-sw-reset').style.display = 'none';
+  document.getElementById('sw-add-wrap').classList.add('hidden');
+  document.querySelector('#sw-add-wrap .btn').style.display = '';
+}
+
+async function swAddMinutes() {
+  const totalMins = Math.floor(swElapsed / 60);
+  if (totalMins <= 0) return;
+  const user = getCurrentUser();
+  user.minutesBank += totalMins;
+  user.practiceLog.push({ date: new Date().toISOString(), minutes: totalMins });
+  await updateUser(user);
+  swReset();
+  refreshApp();
+}
+
+function swUpdateDisplay() {
+  const h = Math.floor(swElapsed / 3600);
+  const m = Math.floor((swElapsed % 3600) / 60);
+  const s = swElapsed % 60;
+  document.getElementById('stopwatch-display').textContent =
+    String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
 }
 
 // ==================== TIMER ====================
