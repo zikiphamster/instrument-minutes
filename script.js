@@ -1,5 +1,5 @@
 // ==================== VERSION ====================
-const APP_VERSION = '1.5.0';
+const APP_VERSION = '1.5.1';
 
 // ==================== CONFIG ====================
 const GIST_ID = 'ab0f0b0a12593cccc0efd7db998410e4';
@@ -223,30 +223,39 @@ async function deletePractice(idx) {
 
 // ==================== STOPWATCH ====================
 let swInterval = null;
-let swElapsed = 0; // seconds
+let swAccumulated = 0; // ms accumulated from previous runs
+let swStartTime = null; // timestamp when current run started
 let swRunning = false;
+
+function swGetElapsed() {
+  let total = swAccumulated;
+  if (swRunning && swStartTime) total += Date.now() - swStartTime;
+  return Math.floor(total / 1000);
+}
 
 function swStart() {
   swRunning = true;
+  swStartTime = Date.now();
   document.getElementById('btn-sw-start').style.display = 'none';
   document.getElementById('btn-sw-pause').style.display = '';
   document.getElementById('btn-sw-reset').style.display = '';
   document.getElementById('sw-add-wrap').classList.add('hidden');
-  swInterval = setInterval(() => {
-    swElapsed++;
-    swUpdateDisplay();
-  }, 1000);
+  swInterval = setInterval(() => swUpdateDisplay(), 500);
 }
 
 function swPause() {
+  swAccumulated += Date.now() - swStartTime;
   swRunning = false;
+  swStartTime = null;
   clearInterval(swInterval);
   swInterval = null;
+  swUpdateDisplay();
   document.getElementById('btn-sw-pause').style.display = 'none';
   document.getElementById('btn-sw-start').textContent = 'Resume';
   document.getElementById('btn-sw-start').style.display = '';
 
-  const totalMins = Math.floor(swElapsed / 60);
+  const elapsed = swGetElapsed();
+  const totalMins = Math.floor(elapsed / 60);
   const msg = document.getElementById('sw-add-msg');
   if (totalMins > 0) {
     const h = Math.floor(totalMins / 60);
@@ -254,6 +263,7 @@ function swPause() {
     const dur = h > 0 ? `${h}h ${m}m` : `${m}m`;
     msg.textContent = `Add ${dur} of practice to your balance?`;
     document.getElementById('sw-add-wrap').classList.remove('hidden');
+    document.querySelector('#sw-add-wrap .btn').style.display = '';
   } else {
     msg.textContent = 'Practice for at least 1 minute to log it.';
     document.getElementById('sw-add-wrap').classList.remove('hidden');
@@ -264,7 +274,8 @@ function swPause() {
 function swReset() {
   clearInterval(swInterval);
   swInterval = null;
-  swElapsed = 0;
+  swAccumulated = 0;
+  swStartTime = null;
   swRunning = false;
   swUpdateDisplay();
   document.getElementById('btn-sw-start').textContent = 'Start';
@@ -276,7 +287,7 @@ function swReset() {
 }
 
 async function swAddMinutes() {
-  const totalMins = Math.floor(swElapsed / 60);
+  const totalMins = Math.floor(swGetElapsed() / 60);
   if (totalMins <= 0) return;
   const user = getCurrentUser();
   user.minutesBank += totalMins;
@@ -287,21 +298,30 @@ async function swAddMinutes() {
 }
 
 function swUpdateDisplay() {
-  const h = Math.floor(swElapsed / 3600);
-  const m = Math.floor((swElapsed % 3600) / 60);
-  const s = swElapsed % 60;
+  const elapsed = swGetElapsed();
+  const h = Math.floor(elapsed / 3600);
+  const m = Math.floor((elapsed % 3600) / 60);
+  const s = elapsed % 60;
   document.getElementById('stopwatch-display').textContent =
     String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
 }
 
 // ==================== TIMER ====================
 let timerInterval = null;
-let timerRemaining = 0; // seconds
+let timerDurationMs = 0; // total duration in ms
+let timerElapsedMs = 0; // ms accumulated while running (from previous runs)
+let timerStartTime = null; // timestamp when current run started
 let timerPaused = false;
 let timerTotalMinutes = 0;
 let overtimeInterval = null;
-let overtimeSeconds = 0;
+let overtimeStartTime = null;
 let audioCtx = null;
+
+function timerGetRemaining() {
+  let elapsed = timerElapsedMs;
+  if (!timerPaused && timerStartTime) elapsed += Date.now() - timerStartTime;
+  return Math.max(0, Math.ceil((timerDurationMs - elapsed) / 1000));
+}
 
 function startTimer() {
   const user = getCurrentUser();
@@ -312,21 +332,23 @@ function startTimer() {
     return;
   }
   timerTotalMinutes = input;
-  timerRemaining = input * 60;
+  timerDurationMs = input * 60 * 1000;
+  timerElapsedMs = 0;
+  timerStartTime = Date.now();
   timerPaused = false;
   document.getElementById('timer-setup').classList.add('hidden');
   document.getElementById('timer-running').classList.remove('hidden');
   document.getElementById('timer-finished').classList.add('hidden');
   document.getElementById('btn-pause').textContent = 'Pause';
   updateTimerDisplay();
-  timerInterval = setInterval(timerTick, 1000);
+  timerInterval = setInterval(timerTick, 500);
 }
 
 function timerTick() {
   if (timerPaused) return;
-  timerRemaining--;
+  const remaining = timerGetRemaining();
   updateTimerDisplay();
-  if (timerRemaining <= 0) {
+  if (remaining <= 0) {
     clearInterval(timerInterval);
     timerInterval = null;
     timerFinished();
@@ -334,21 +356,32 @@ function timerTick() {
 }
 
 function updateTimerDisplay() {
-  const m = Math.floor(timerRemaining / 60);
-  const s = timerRemaining % 60;
+  const remaining = timerGetRemaining();
+  const m = Math.floor(remaining / 60);
+  const s = remaining % 60;
   document.getElementById('timer-countdown').textContent =
     String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
 }
 
 function togglePause() {
-  timerPaused = !timerPaused;
-  document.getElementById('btn-pause').textContent = timerPaused ? 'Resume' : 'Pause';
+  if (timerPaused) {
+    // Resume
+    timerPaused = false;
+    timerStartTime = Date.now();
+    document.getElementById('btn-pause').textContent = 'Pause';
+  } else {
+    // Pause
+    timerElapsedMs += Date.now() - timerStartTime;
+    timerStartTime = null;
+    timerPaused = true;
+    document.getElementById('btn-pause').textContent = 'Resume';
+  }
 }
 
 function cancelTimer() {
   clearInterval(timerInterval); timerInterval = null;
   clearInterval(overtimeInterval); overtimeInterval = null;
-  timerRemaining = 0; timerPaused = false;
+  timerDurationMs = 0; timerElapsedMs = 0; timerStartTime = null; timerPaused = false;
   document.getElementById('timer-setup').classList.remove('hidden');
   document.getElementById('timer-running').classList.add('hidden');
   document.getElementById('timer-finished').classList.add('hidden');
@@ -414,11 +447,11 @@ function educationalBypass() {
 const OVERTIME_THRESHOLD = 60; // seconds (set to 60 for testing, change to 600 for production)
 
 function startOvertimeTracking() {
-  overtimeSeconds = 0;
+  overtimeStartTime = Date.now();
   clearInterval(overtimeInterval);
   overtimeInterval = setInterval(() => {
-    overtimeSeconds++;
-    if (overtimeSeconds >= OVERTIME_THRESHOLD) {
+    const elapsed = Math.floor((Date.now() - overtimeStartTime) / 1000);
+    if (elapsed >= OVERTIME_THRESHOLD) {
       clearInterval(overtimeInterval);
       overtimeInterval = null;
       flagOvertime();
