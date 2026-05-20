@@ -24,7 +24,7 @@ body {
 }
 
 /* Layout */
-.app { max-width: 520px; margin: 0 auto; padding: 20px 16px 40px; }
+.app { max-width: 900px; margin: 0 auto; padding: 20px 40px 40px; }
 
 .card {
   background: var(--bg2);
@@ -203,7 +203,9 @@ label { display: block; font-weight: 600; margin-bottom: 5px; font-size: 0.9rem;
 .hidden { display: none !important; }
 
 /* Responsive */
-@media (max-width: 400px) {
+@media (max-width: 600px) {
+  .app { max-width: 520px; padding: 20px 16px 40px; }
   .timer-display { font-size: 3rem; }
+  .stopwatch-display { font-size: 2.4rem; }
   .card { padding: 20px 16px; }
 }
