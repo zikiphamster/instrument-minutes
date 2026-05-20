@@ -1,5 +1,5 @@
 // ==================== VERSION ====================
-const APP_VERSION = '1.6.0';
+const APP_VERSION = '1.6.1';
 
 // ==================== CONFIG ====================
 const GIST_ID = 'ab0f0b0a12593cccc0efd7db998410e4';
@@ -316,6 +316,7 @@ function refreshStreakDisplay() {
     const paths = flame.querySelectorAll('path');
     if (paths.length >= 2) {
       paths[0].setAttribute('fill', active ? '#ff6b35' : '#888');
+      paths[0].setAttribute('stroke', active ? '#fff' : '#aaa');
       paths[1].setAttribute('fill', active ? '#ffcc02' : '#aaa');
     }
   }
@@ -326,6 +327,7 @@ function refreshStreakDisplay() {
     const paths = flameBig.querySelectorAll('path');
     if (paths.length >= 2) {
       paths[0].setAttribute('fill', active ? '#ff6b35' : '#888');
+      paths[0].setAttribute('stroke', active ? '#fff' : '#aaa');
       paths[1].setAttribute('fill', active ? '#ffcc02' : '#aaa');
     }
   }
