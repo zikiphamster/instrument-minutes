@@ -1,5 +1,5 @@
 // ==================== VERSION ====================
-const APP_VERSION = '1.6.27';
+const APP_VERSION = '1.7.0';
 
 // ==================== CONFIG ====================
 const GIST_ID = 'ab0f0b0a12593cccc0efd7db998410e4';
@@ -148,7 +148,7 @@ function showScreen(id) {
 function switchTab(tabId, btn) {
   document.querySelectorAll('.tab-content').forEach(t => t.classList.add('hidden'));
   document.getElementById(tabId).classList.remove('hidden');
-  document.querySelectorAll('.nav button').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.bottom-nav button').forEach(b => b.classList.remove('active'));
   if (btn) btn.classList.add('active');
   if (tabId === 'tab-stats') renderStats();
   if (tabId === 'tab-practice') renderPracticeHistory();
