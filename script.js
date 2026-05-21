@@ -1,5 +1,5 @@
 // ==================== VERSION ====================
-const APP_VERSION = '1.6.5';
+const APP_VERSION = '1.6.27';
 
 // ==================== CONFIG ====================
 const GIST_ID = 'ab0f0b0a12593cccc0efd7db998410e4';
@@ -316,16 +316,13 @@ function refreshStreakDisplay() {
     if (!svg) return;
     const paths = svg.querySelectorAll('path');
     const ellipse = svg.querySelector('ellipse');
-    // path 0 = main body (with notch), path 1 = inner flame
+    // path 0 = outer flame (with bump), path 1 = inner flame
     if (paths[0]) {
-      paths[0].setAttribute('fill', active ? '#ff6b35' : '#888');
+      paths[0].setAttribute('fill', active ? '#F4900C' : '#888');
       paths[0].setAttribute('stroke', active ? '#fff' : '#aaa');
     }
     if (paths[1]) {
-      paths[1].setAttribute('fill', active ? '#ffcc02' : '#aaa');
-    }
-    if (ellipse) {
-      ellipse.setAttribute('fill', active ? '#ffdd66' : '#bbb');
+      paths[1].setAttribute('fill', active ? '#FFCC4D' : '#aaa');
     }
   });
 
