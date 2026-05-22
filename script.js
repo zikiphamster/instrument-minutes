@@ -1,5 +1,5 @@
 // ==================== VERSION ====================
-const APP_VERSION = '1.7.1';
+const APP_VERSION = '1.8.0';
 
 // ==================== CONFIG ====================
 const GIST_ID = 'ab0f0b0a12593cccc0efd7db998410e4';
@@ -930,7 +930,7 @@ async function renderAdmin() {
   await loadDB();
   const profiles = getProfiles().filter(p => !p.isAdmin);
   const bannerEl = document.getElementById('admin-overtime-banners');
-  const bodyEl = document.getElementById('admin-users-body');
+  const gridEl = document.getElementById('admin-users-grid');
   const weeklyEl = document.getElementById('admin-weekly');
 
   // Overtime banners
@@ -940,22 +940,25 @@ async function renderAdmin() {
     return `<div class="overtime-banner">${u.name} has ${count} overtime violation${count > 1 ? 's' : ''} (stayed 10+ min past timer with no minutes left)</div>`;
   }).join('');
 
-  // Table
-  bodyEl.innerHTML = profiles.map(u => {
+  // User cards grid
+  gridEl.innerHTML = profiles.map(u => {
     const totalEarned = u.practiceLog.reduce((s, e) => s + e.minutes, 0);
     const totalUsed = u.usageLog.reduce((s, e) => s + e.minutesUsed, 0);
     const overtimeCount = u.usageLog.filter(e => e.overtime).length;
-    return `<tr>
-      <td>${u.name}</td>
-      <td>${totalEarned}m</td>
-      <td>${totalUsed}m</td>
-      <td>${u.minutesBank}m</td>
-      <td>${overtimeCount > 0 ? `<span style="color:#e65100;font-weight:700;">${overtimeCount}</span>` : '0'}</td>
-    </tr>`;
+    return `<div class="admin-user-card">
+      <h3>${u.name}</h3>
+      <div class="admin-big-minutes">${u.minutesBank}</div>
+      <div class="admin-minutes-label">minutes left</div>
+      <div class="admin-user-stats">
+        <div>Earned <span>${totalEarned}m</span></div>
+        <div>Used <span>${totalUsed}m</span></div>
+        <div>Overtime <span${overtimeCount > 0 ? ' style="color:#e65100;"' : ''}>${overtimeCount}</span></div>
+      </div>
+    </div>`;
   }).join('');
 
   if (profiles.length === 0) {
-    bodyEl.innerHTML = '<tr><td colspan="5" style="color:var(--text-muted);">No users yet.</td></tr>';
+    gridEl.innerHTML = '<p style="color:var(--text-muted);text-align:center;">No users yet.</p>';
   }
 
   // Weekly per user
