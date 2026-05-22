@@ -1,5 +1,5 @@
 // ==================== VERSION ====================
-const APP_VERSION = '1.12.16';
+const APP_VERSION = '1.12.17';
 
 // ==================== CONFIG ====================
 const GIST_ID = 'ab0f0b0a12593cccc0efd7db998410e4';
@@ -327,7 +327,7 @@ function refreshStreakDisplay() {
   const user = getCurrentUser();
   if (!user) return;
   const streak = user.streak || 0;
-  const active = streak > 0;
+  const practicedToday = user.lastPracticeDate === getTodayStr();
 
   document.getElementById('streak-count').textContent = streak;
   const bigCount = document.getElementById('streak-big-count');
@@ -336,10 +336,10 @@ function refreshStreakDisplay() {
   // Update badge background
   const badge = document.getElementById('streak-badge');
   if (badge) {
-    badge.style.background = active
+    badge.style.background = practicedToday
       ? 'linear-gradient(135deg, #ff6b35, #ff4500)'
       : 'linear-gradient(135deg, #666, #555)';
-    badge.style.boxShadow = active
+    badge.style.boxShadow = practicedToday
       ? '0 2px 8px rgba(255, 69, 0, 0.3)'
       : '0 2px 8px rgba(0, 0, 0, 0.2)';
   }
@@ -352,17 +352,17 @@ function refreshStreakDisplay() {
     const ellipse = svg.querySelector('ellipse');
     // path 0 = outer flame (with bump), path 1 = inner flame
     if (paths[0]) {
-      paths[0].setAttribute('fill', active ? '#F4900C' : '#888');
-      paths[0].setAttribute('stroke', active ? '#fff' : '#aaa');
+      paths[0].setAttribute('fill', practicedToday ? '#F4900C' : '#888');
+      paths[0].setAttribute('stroke', practicedToday ? '#fff' : '#aaa');
     }
     if (paths[1]) {
-      paths[1].setAttribute('fill', active ? '#FFCC4D' : '#aaa');
+      paths[1].setAttribute('fill', practicedToday ? '#FFCC4D' : '#aaa');
     }
   });
 
   // Update big number color
   if (bigCount) {
-    bigCount.style.color = active ? '#ff6b35' : 'var(--text-muted)';
+    bigCount.style.color = practicedToday ? '#ff6b35' : 'var(--text-muted)';
   }
 }
 
