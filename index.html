@@ -106,18 +106,14 @@
         </div>
 
         <div id="timer-setup">
-          <div class="field">
-            <label for="timer-input">Set timer (minutes)</label>
-            <input type="number" id="timer-input" min="1" placeholder="Enter minutes">
-          </div>
-          <div id="timer-max-note" style="font-size:0.82rem;color:var(--text-muted);margin-bottom:12px;"></div>
-          <button class="btn btn-block btn-success" onclick="startTimer()">Start Timer</button>
+          <button class="btn btn-block btn-success" onclick="startTimer()">Start Using Minutes</button>
         </div>
 
         <div id="timer-running" class="hidden">
           <div class="timer-display" id="timer-countdown">00:00</div>
+          <div id="timer-remaining-note" style="font-size:0.9rem;color:var(--text-muted);text-align:center;margin-bottom:14px;"></div>
           <div class="timer-controls">
-            <button class="btn" id="btn-pause" onclick="togglePause()">Pause</button>
+            <button class="btn btn-success" onclick="finishUsage()">Finish</button>
             <button class="btn btn-danger" onclick="cancelTimer()">Cancel</button>
           </div>
         </div>

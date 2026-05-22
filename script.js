@@ -1,5 +1,5 @@
 // ==================== VERSION ====================
-const APP_VERSION = '1.8.0';
+const APP_VERSION = '1.9.0';
 
 // ==================== CONFIG ====================
 const GIST_ID = 'ab0f0b0a12593cccc0efd7db998410e4';
@@ -176,9 +176,12 @@ function refreshApp() {
   document.getElementById('display-role').textContent = user.isAdmin ? 'Admin' : 'User';
   document.getElementById('btn-admin-dash').style.display = user.isAdmin ? '' : 'none';
   document.getElementById('balance-minutes').textContent = user.minutesBank;
-  document.getElementById('timer-max-note').textContent =
-    user.minutesBank > 0 ? `Max: ${user.minutesBank} minutes` : 'No minutes available — log some practice first!';
-  document.getElementById('timer-input').max = user.minutesBank;
+  // Disable start button if no minutes available
+  const startBtn = document.querySelector('#timer-setup .btn');
+  if (startBtn) {
+    startBtn.disabled = user.minutesBank <= 0;
+    startBtn.textContent = user.minutesBank > 0 ? 'Start Using Minutes' : 'No minutes available';
+  }
   const mode = getMode(user);
   applyTheme(user.theme || 'pink', mode);
   updateModeButtons(mode);
@@ -533,129 +536,88 @@ function swUpdateDisplay() {
 
 // ==================== TIMER ====================
 let timerInterval = null;
-let timerDurationMs = 0; // total duration in ms
-let timerElapsedMs = 0; // ms accumulated while running (from previous runs)
-let timerStartTime = null; // timestamp when current run started
-let timerPaused = false;
-let timerTotalMinutes = 0;
+let timerStartTime = null;
 let overtimeInterval = null;
 let overtimeStartTime = null;
 let audioCtx = null;
 
-function timerGetRemaining() {
-  let elapsed = timerElapsedMs;
-  if (!timerPaused && timerStartTime) elapsed += Date.now() - timerStartTime;
-  return Math.max(0, Math.ceil((timerDurationMs - elapsed) / 1000));
+function timerGetElapsedSeconds() {
+  if (!timerStartTime) return 0;
+  return Math.floor((Date.now() - timerStartTime) / 1000);
 }
 
 function startTimer() {
   const user = getCurrentUser();
-  const input = parseInt(document.getElementById('timer-input').value);
-  if (!input || input <= 0) return;
-  if (input > user.minutesBank) {
-    alert(`You only have ${user.minutesBank} minutes available.`);
-    return;
-  }
-  timerTotalMinutes = input;
-  timerDurationMs = input * 60 * 1000;
-  timerElapsedMs = 0;
+  if (user.minutesBank <= 0) return;
   timerStartTime = Date.now();
-  timerPaused = false;
   document.getElementById('timer-setup').classList.add('hidden');
   document.getElementById('timer-running').classList.remove('hidden');
   document.getElementById('timer-finished').classList.add('hidden');
-  document.getElementById('btn-pause').textContent = 'Pause';
   updateTimerDisplay();
   timerInterval = setInterval(timerTick, 500);
 }
 
 function timerTick() {
-  if (timerPaused) return;
-  const remaining = timerGetRemaining();
   updateTimerDisplay();
-  if (remaining <= 0) {
-    clearInterval(timerInterval);
-    timerInterval = null;
-    timerFinished();
-  }
 }
 
 function updateTimerDisplay() {
-  const remaining = timerGetRemaining();
-  const m = Math.floor(remaining / 60);
-  const s = remaining % 60;
+  const elapsed = timerGetElapsedSeconds();
+  const m = Math.floor(elapsed / 60);
+  const s = elapsed % 60;
   document.getElementById('timer-countdown').textContent =
     String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
-}
-
-function togglePause() {
-  if (timerPaused) {
-    // Resume
-    timerPaused = false;
-    timerStartTime = Date.now();
-    document.getElementById('btn-pause').textContent = 'Pause';
-  } else {
-    // Pause
-    timerElapsedMs += Date.now() - timerStartTime;
-    timerStartTime = null;
-    timerPaused = true;
-    document.getElementById('btn-pause').textContent = 'Resume';
-  }
+  const user = getCurrentUser();
+  const usedMinutes = Math.ceil(elapsed / 60);
+  const remaining = Math.max(0, user.minutesBank - usedMinutes);
+  document.getElementById('timer-remaining-note').textContent =
+    `${remaining} minutes remaining`;
 }
 
 function cancelTimer() {
   clearInterval(timerInterval); timerInterval = null;
   clearInterval(overtimeInterval); overtimeInterval = null;
-  timerDurationMs = 0; timerElapsedMs = 0; timerStartTime = null; timerPaused = false;
+  timerStartTime = null;
   document.getElementById('timer-setup').classList.remove('hidden');
   document.getElementById('timer-running').classList.add('hidden');
   document.getElementById('timer-finished').classList.add('hidden');
 }
 
-async function timerFinished() {
-  // Deduct minutes
+async function finishUsage() {
+  clearInterval(timerInterval); timerInterval = null;
+  const elapsed = timerGetElapsedSeconds();
+  const usedMinutes = Math.ceil(elapsed / 60);
+  timerStartTime = null;
+
   const user = getCurrentUser();
-  user.minutesBank = Math.max(0, user.minutesBank - timerTotalMinutes);
-  const today = new Date().toISOString().slice(0, 10);
-  user.usageLog.push({ date: today, minutesUsed: timerTotalMinutes, overtime: false });
+  user.minutesBank = Math.max(0, user.minutesBank - usedMinutes);
+  const today = getTodayStr();
+  user.usageLog.push({ date: today, minutesUsed: usedMinutes, overtime: false });
   await updateUser(user);
 
-  // Play alarm
-  playAlarm();
-
-  // Send notification
-  sendNotification('Instrument Minutes', 'Your screen timer is up!');
-
-  // Show message
   const msgEl = document.getElementById('timer-end-message');
-  if (user.minutesBank <= 0) {
-    msgEl.textContent = "You don't have any more minutes left.";
+  if (usedMinutes === 0) {
+    msgEl.textContent = 'No minutes used.';
+    msgEl.className = 'message message-success';
+  } else if (user.minutesBank <= 0) {
+    msgEl.textContent = `Used ${usedMinutes} minutes. You don't have any more minutes left.`;
     msgEl.className = 'message message-danger';
-    // Start overtime tracking
-    startOvertimeTracking();
   } else {
-    msgEl.textContent = 'Add more minutes or take a screen break! Your timer is up.';
-    msgEl.className = 'message message-warning';
+    msgEl.textContent = `Used ${usedMinutes} minutes. You have ${user.minutesBank} minutes left.`;
+    msgEl.className = 'message message-success';
   }
 
   document.getElementById('timer-running').classList.add('hidden');
   document.getElementById('timer-finished').classList.remove('hidden');
-
   refreshApp();
 }
 
 function dismissTimer() {
   stopAlarm();
-  const user = getCurrentUser();
-  if (user && user.minutesBank > 0) {
-    clearInterval(overtimeInterval); overtimeInterval = null;
-    hideUserOvertimeBanner();
-  } else if (user && user.minutesBank <= 0 && !overtimeInterval) {
-    startOvertimeTracking();
-  }
+  clearInterval(overtimeInterval); overtimeInterval = null;
+  hideUserOvertimeBanner();
   document.getElementById('timer-finished').classList.add('hidden');
   document.getElementById('timer-setup').classList.remove('hidden');
-  document.getElementById('timer-input').value = '';
   refreshApp();
 }
 
@@ -664,7 +626,6 @@ function educationalBypass() {
   clearInterval(overtimeInterval); overtimeInterval = null;
   document.getElementById('timer-finished').classList.add('hidden');
   document.getElementById('timer-setup').classList.remove('hidden');
-  document.getElementById('timer-input').value = '';
   refreshApp();
 }
 
