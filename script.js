@@ -1,5 +1,5 @@
 // ==================== VERSION ====================
-const APP_VERSION = '1.9.0';
+const APP_VERSION = '1.10.0';
 
 // ==================== CONFIG ====================
 const GIST_ID = 'ab0f0b0a12593cccc0efd7db998410e4';
@@ -972,11 +972,210 @@ async function deleteProfile() {
   showLogin();
 }
 
+// ==================== SECRET TERMINAL ====================
+let terminalHistory = [];
+let terminalHistoryIdx = -1;
+
+function toggleTerminal() {
+  const panel = document.getElementById('terminal-panel');
+  const backdrop = document.getElementById('terminal-backdrop');
+  panel.classList.toggle('hidden');
+  backdrop.classList.toggle('hidden');
+  if (!panel.classList.contains('hidden')) {
+    document.getElementById('terminal-input').focus();
+  }
+}
+
+document.addEventListener('keydown', (e) => {
+  if (e.metaKey && e.shiftKey && e.key === '\\') {
+    e.preventDefault();
+    toggleTerminal();
+    return;
+  }
+  const panel = document.getElementById('terminal-panel');
+  if (e.key === 'Escape' && panel && !panel.classList.contains('hidden')) {
+    e.preventDefault();
+    toggleTerminal();
+  }
+});
+
+function termAppendLine(text, className) {
+  const output = document.getElementById('terminal-output');
+  const div = document.createElement('div');
+  div.textContent = text;
+  if (className) div.className = className;
+  output.appendChild(div);
+  output.scrollTop = output.scrollHeight;
+}
+
+function handleTerminalCommand(input) {
+  const parts = input.trim().split(/\s+/);
+  const cmd = parts[0].toLowerCase();
+  if (cmd === '/help') return termCmdHelp();
+  if (cmd === '/status') return termCmdStatus();
+  if (cmd === '/version') return termCmdVersion();
+  if (cmd === '/clear' && parts.length === 1) {
+    document.getElementById('terminal-output').innerHTML = '';
+    return;
+  }
+  if (cmd === '/set') return termCmdSet(parts.slice(1));
+  if (cmd === '/add') return termCmdAdd(parts.slice(1));
+  if (cmd === '/clear') return termCmdClearData(parts.slice(1));
+  termAppendLine('Unknown command: ' + cmd + '. Type /help for commands.', 'term-err');
+}
+
+function termCmdHelp() {
+  termAppendLine('COMMANDS', 'term-heading');
+  const cmds = [
+    '/help                        Show this help',
+    '/status                      Show current user stats',
+    '/version                     Show app version',
+    '/clear                       Clear terminal output',
+    '/set minutes <n>             Set minutesBank to n',
+    '/add minutes <n>             Add n to minutesBank',
+    '/set streak <n>              Set streak count',
+    '/clear usage                 Clear all usage log entries',
+    '/clear practice              Clear all practice log entries',
+    '/add usage <mins> [date]     Add usage entry (YYYY-MM-DD)',
+    '/add practice <mins> [date]  Add practice entry (YYYY-MM-DD)',
+  ];
+  cmds.forEach(c => termAppendLine(c, 'term-info'));
+}
+
+function termCmdStatus() {
+  const user = getCurrentUser();
+  if (!user) { termAppendLine('No user logged in.', 'term-err'); return; }
+  const totalPractice = user.practiceLog.reduce((s, e) => s + e.minutes, 0);
+  const totalUsage = user.usageLog.reduce((s, e) => s + e.minutesUsed, 0);
+  const overtimeCount = user.usageLog.filter(e => e.overtime).length;
+  termAppendLine('USER STATUS', 'term-heading');
+  termAppendLine('Name:             ' + user.name, 'term-ok');
+  termAppendLine('Role:             ' + (user.isAdmin ? 'Admin' : 'User'), 'term-ok');
+  termAppendLine('Minutes Bank:     ' + user.minutesBank, 'term-ok');
+  termAppendLine('Streak:           ' + (user.streak || 0) + ' days', 'term-ok');
+  termAppendLine('Last Practice:    ' + (user.lastPracticeDate || 'never'), 'term-ok');
+  termAppendLine('Practice Entries: ' + user.practiceLog.length + ' (' + totalPractice + 'm total)', 'term-ok');
+  termAppendLine('Usage Entries:    ' + user.usageLog.length + ' (' + totalUsage + 'm total)', 'term-ok');
+  termAppendLine('Overtime:         ' + overtimeCount, 'term-ok');
+}
+
+function termCmdVersion() {
+  termAppendLine('Instrument Minutes v' + APP_VERSION, 'term-info');
+}
+
+async function termCmdSet(args) {
+  const user = getCurrentUser();
+  if (!user) { termAppendLine('No user logged in.', 'term-err'); return; }
+  const field = (args[0] || '').toLowerCase();
+  const value = parseInt(args[1]);
+  if (field === 'minutes' && !isNaN(value)) {
+    user.minutesBank = Math.max(0, value);
+    await updateUser(user);
+    refreshApp();
+    termAppendLine('minutesBank set to ' + user.minutesBank, 'term-ok');
+  } else if (field === 'streak' && !isNaN(value)) {
+    user.streak = Math.max(0, value);
+    if (value > 0 && !user.lastPracticeDate) user.lastPracticeDate = getTodayStr();
+    await updateUser(user);
+    refreshApp();
+    termAppendLine('streak set to ' + user.streak, 'term-ok');
+  } else {
+    termAppendLine('Usage: /set minutes <n> | /set streak <n>', 'term-err');
+  }
+}
+
+async function termCmdAdd(args) {
+  const user = getCurrentUser();
+  if (!user) { termAppendLine('No user logged in.', 'term-err'); return; }
+  const field = (args[0] || '').toLowerCase();
+  const value = parseInt(args[1]);
+  if (field === 'minutes' && !isNaN(value)) {
+    user.minutesBank = Math.max(0, user.minutesBank + value);
+    await updateUser(user);
+    refreshApp();
+    termAppendLine('Added ' + value + '. minutesBank is now ' + user.minutesBank, 'term-ok');
+  } else if (field === 'usage' && !isNaN(value)) {
+    const date = args[2] || getTodayStr();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      termAppendLine('Invalid date format. Use YYYY-MM-DD.', 'term-err'); return;
+    }
+    user.usageLog.push({ date, minutesUsed: value, overtime: false });
+    await updateUser(user);
+    refreshApp();
+    termAppendLine('Added usage entry: ' + value + 'm on ' + date, 'term-ok');
+  } else if (field === 'practice' && !isNaN(value)) {
+    const dateArg = args[2];
+    if (dateArg && !/^\d{4}-\d{2}-\d{2}$/.test(dateArg)) {
+      termAppendLine('Invalid date format. Use YYYY-MM-DD.', 'term-err'); return;
+    }
+    const date = dateArg ? dateArg + 'T12:00:00.000Z' : new Date().toISOString();
+    user.practiceLog.push({ date, minutes: value });
+    await updateUser(user);
+    refreshApp();
+    termAppendLine('Added practice entry: ' + value + 'm on ' + date.slice(0, 10), 'term-ok');
+  } else {
+    termAppendLine('Usage: /add minutes <n> | /add usage <mins> [date] | /add practice <mins> [date]', 'term-err');
+  }
+}
+
+async function termCmdClearData(args) {
+  const user = getCurrentUser();
+  if (!user) { termAppendLine('No user logged in.', 'term-err'); return; }
+  const target = (args[0] || '').toLowerCase();
+  if (target === 'usage') {
+    const count = user.usageLog.length;
+    user.usageLog = [];
+    await updateUser(user);
+    refreshApp();
+    termAppendLine('Cleared ' + count + ' usage log entries.', 'term-ok');
+  } else if (target === 'practice') {
+    const count = user.practiceLog.length;
+    user.practiceLog = [];
+    await updateUser(user);
+    refreshApp();
+    termAppendLine('Cleared ' + count + ' practice log entries.', 'term-ok');
+  } else {
+    termAppendLine('Usage: /clear usage | /clear practice', 'term-err');
+  }
+}
+
 // ==================== INIT ====================
 (async function init() {
   document.getElementById('version-badge').textContent = 'v' + APP_VERSION;
   await loadDB();
   document.getElementById('loading-overlay').remove();
+
+  // Terminal input handler
+  const termInput = document.getElementById('terminal-input');
+  termInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      const cmd = termInput.value.trim();
+      if (!cmd) return;
+      terminalHistory.unshift(cmd);
+      terminalHistoryIdx = -1;
+      termAppendLine('> ' + cmd, 'term-cmd');
+      handleTerminalCommand(cmd);
+      termInput.value = '';
+    }
+    if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (terminalHistoryIdx < terminalHistory.length - 1) {
+        terminalHistoryIdx++;
+        termInput.value = terminalHistory[terminalHistoryIdx];
+      }
+    }
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      if (terminalHistoryIdx > 0) {
+        terminalHistoryIdx--;
+        termInput.value = terminalHistory[terminalHistoryIdx];
+      } else {
+        terminalHistoryIdx = -1;
+        termInput.value = '';
+      }
+    }
+  });
+
   const user = getCurrentUser();
   if (user) {
     enterApp();

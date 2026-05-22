@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Instrument Minutes</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='80' font-size='80'>🎵</text></svg>">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -295,6 +296,21 @@
   <div style="text-align:center;">
     <div style="font-size:1.4rem;font-weight:700;color:#f0c0d4;margin-bottom:8px;">Instrument Minutes</div>
     <div style="color:#9999aa;font-size:0.9rem;">Loading...</div>
+  </div>
+</div>
+
+<!-- ========== SECRET TERMINAL PANEL ========== -->
+<div id="terminal-backdrop" class="terminal-backdrop hidden" onclick="toggleTerminal()"></div>
+<div id="terminal-panel" class="terminal-panel hidden">
+  <div class="terminal-header">
+    <span class="terminal-title">~ instrument-minutes</span>
+    <button class="terminal-close" onclick="toggleTerminal()">&times;</button>
+  </div>
+  <div class="terminal-output" id="terminal-output"></div>
+  <div class="terminal-input-row">
+    <span class="terminal-prompt">&gt;</span>
+    <input type="text" id="terminal-input" class="terminal-input"
+           placeholder="Type /help for commands..." autocomplete="off" spellcheck="false">
   </div>
 </div>
 
