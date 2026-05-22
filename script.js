@@ -239,16 +239,16 @@ async function deletePractice(idx) {
 
 // ==================== STREAK ====================
 const MILESTONES = [
-  { days: 10, reward: 5 },
-  { days: 20, reward: 6 },
-  { days: 30, reward: 7 },
-  { days: 50, reward: 8 },
-  { days: 75, reward: 9 },
-  { days: 100, reward: 10 },
-  { days: 150, reward: 11 },
-  { days: 200, reward: 12 },
-  { days: 300, reward: 13 },
-  { days: 365, reward: 14 },
+  { days: 10, reward: 7 },
+  { days: 20, reward: 15 },
+  { days: 30, reward: 25 },
+  { days: 50, reward: 35 },
+  { days: 75, reward: 50 },
+  { days: 100, reward: 70 },
+  { days: 150, reward: 100 },
+  { days: 200, reward: 130 },
+  { days: 300, reward: 175 },
+  { days: 365, reward: 250 },
 ];
 
 let calendarViewDate = new Date(); // tracks which month is displayed
