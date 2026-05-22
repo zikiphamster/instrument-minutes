@@ -1,5 +1,5 @@
 // ==================== VERSION ====================
-const APP_VERSION = '1.7.0';
+const APP_VERSION = '1.7.1';
 
 // ==================== CONFIG ====================
 const GIST_ID = 'ab0f0b0a12593cccc0efd7db998410e4';
@@ -251,13 +251,14 @@ const MILESTONES = [
 let calendarViewDate = new Date(); // tracks which month is displayed
 
 function getTodayStr() {
-  return new Date().toISOString().slice(0, 10);
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
 }
 
 function getYesterdayStr() {
   const d = new Date();
   d.setDate(d.getDate() - 1);
-  return d.toISOString().slice(0, 10);
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
 }
 
 function updateStreak(user) {
@@ -279,12 +280,15 @@ function updateStreak(user) {
   if (!user.claimedMilestones) user.claimedMilestones = [];
 }
 
-function checkStreakReset(user) {
+async function checkStreakReset(user) {
   if (!user.lastPracticeDate) return;
   const today = getTodayStr();
   const yesterday = getYesterdayStr();
   if (user.lastPracticeDate !== today && user.lastPracticeDate !== yesterday) {
-    user.streak = 0;
+    if (user.streak !== 0) {
+      user.streak = 0;
+      await updateUser(user);
+    }
   }
   if (!user.claimedMilestones) user.claimedMilestones = [];
 }
