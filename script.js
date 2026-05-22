@@ -1,5 +1,5 @@
 // ==================== VERSION ====================
-const APP_VERSION = '1.12.14';
+const APP_VERSION = '1.12.15';
 
 // ==================== CONFIG ====================
 const GIST_ID = 'ab0f0b0a12593cccc0efd7db998410e4';
@@ -1169,7 +1169,7 @@ async function termCmdSet(args) {
     termAppendLine('minutesBank set to ' + user.minutesBank, 'term-ok');
   } else if (field === 'streak' && !isNaN(value)) {
     user.streak = Math.max(0, value);
-    if (value > 0 && !user.lastPracticeDate) user.lastPracticeDate = getTodayStr();
+    if (value > 0) user.lastPracticeDate = getTodayStr();
     await updateUser(user);
     refreshApp();
     termAppendLine('streak set to ' + user.streak, 'term-ok');
