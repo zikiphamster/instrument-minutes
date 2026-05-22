@@ -92,6 +92,10 @@
         <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><rect x="3" y="14" width="4" height="7" rx="1"/><rect x="10" y="8" width="4" height="13" rx="1"/><rect x="17" y="3" width="4" height="18" rx="1"/></svg>
         <span>Stats</span>
       </button>
+      <button onclick="switchTab('tab-shop', this)">
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4H6zM3.5 6h17M16 10a4 4 0 0 1-8 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span>Shop</span>
+      </button>
       <button onclick="switchTab('tab-settings', this)">
         <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
         <span>Settings</span>
@@ -175,6 +179,18 @@
       <div class="card">
         <h3>Usage History</h3>
         <div id="usage-history"></div>
+      </div>
+    </div>
+
+    <!-- ---- Shop Tab ---- -->
+    <div id="tab-shop" class="tab-content hidden">
+      <div class="card">
+        <h2>Shop</h2>
+        <div id="shop-content"></div>
+      </div>
+      <div class="card">
+        <h3>Purchase History</h3>
+        <div id="shop-history"></div>
       </div>
     </div>
 
@@ -264,6 +280,11 @@
     <div class="card">
       <h2>Weekly Usage Per User</h2>
       <div id="admin-weekly"></div>
+    </div>
+
+    <div class="card">
+      <h2>Purchase History</h2>
+      <div id="admin-purchases"></div>
     </div>
 
     <!-- Admin Settings (hidden by default) -->

@@ -1,5 +1,5 @@
 // ==================== VERSION ====================
-const APP_VERSION = '1.11.0';
+const APP_VERSION = '1.12.0';
 
 // ==================== CONFIG ====================
 const GIST_ID = 'ab0f0b0a12593cccc0efd7db998410e4';
@@ -101,7 +101,9 @@ async function signup() {
     usageLog: [],
     streak: 0,
     lastPracticeDate: null,
-    claimedMilestones: []
+    claimedMilestones: [],
+    streakFreezes: 0,
+    purchaseLog: []
   };
   db.profiles.push(user);
   await saveDB();
@@ -152,6 +154,7 @@ function switchTab(tabId, btn) {
   if (btn) btn.classList.add('active');
   if (tabId === 'tab-stats') renderStats();
   if (tabId === 'tab-practice') renderPracticeHistory();
+  if (tabId === 'tab-shop') renderShop();
 }
 
 // ==================== APP ENTRY ====================
@@ -289,8 +292,16 @@ async function checkStreakReset(user) {
   const yesterday = getYesterdayStr();
   if (user.lastPracticeDate !== today && user.lastPracticeDate !== yesterday) {
     if (user.streak !== 0) {
-      user.streak = 0;
-      await updateUser(user);
+      if ((user.streakFreezes || 0) > 0) {
+        // Use a streak freeze instead of resetting
+        user.streakFreezes--;
+        user.lastPracticeDate = yesterday;
+        if (!user.purchaseLog) user.purchaseLog = [];
+        await updateUser(user);
+      } else {
+        user.streak = 0;
+        await updateUser(user);
+      }
     }
   }
   if (!user.claimedMilestones) user.claimedMilestones = [];
@@ -885,6 +896,63 @@ function adminSettings() {
   }
 }
 
+// ==================== SHOP ====================
+const STREAK_FREEZE_COST = 45;
+const STREAK_FREEZE_MAX = 2;
+
+function renderShop() {
+  const user = getCurrentUser();
+  if (!user) return;
+  const freezes = user.streakFreezes || 0;
+  const canBuy = user.minutesBank >= STREAK_FREEZE_COST && freezes < STREAK_FREEZE_MAX;
+
+  const contentEl = document.getElementById('shop-content');
+  contentEl.innerHTML = `
+    <div class="shop-freeze-count">
+      <div class="shop-freeze-number">${freezes} / ${STREAK_FREEZE_MAX}</div>
+      <div class="shop-freeze-label">streak freezes owned</div>
+    </div>
+    <div class="shop-item">
+      <div class="shop-item-info">
+        <div class="shop-item-name">❄️ Streak Freeze</div>
+        <div class="shop-item-desc">Protects your streak if you miss a day</div>
+        <div class="shop-item-cost">${STREAK_FREEZE_COST} minutes</div>
+      </div>
+      <button class="btn btn-sm${canBuy ? '' : ' btn-outline'}" onclick="buyStreakFreeze()" ${canBuy ? '' : 'disabled'}>
+        ${freezes >= STREAK_FREEZE_MAX ? 'Max owned' : user.minutesBank < STREAK_FREEZE_COST ? 'Not enough' : 'Buy'}
+      </button>
+    </div>
+  `;
+
+  const historyEl = document.getElementById('shop-history');
+  const log = (user.purchaseLog || []).slice().reverse();
+  if (log.length === 0) {
+    historyEl.innerHTML = '<p style="color:var(--text-muted);font-size:0.88rem;">No purchases yet.</p>';
+  } else {
+    historyEl.innerHTML = log.map(e => `
+      <div class="purchase-history-item">
+        <span>${e.item}</span>
+        <span style="color:var(--text-muted);">${e.date} · ${e.cost}m</span>
+      </div>
+    `).join('');
+  }
+}
+
+async function buyStreakFreeze() {
+  const user = getCurrentUser();
+  if (!user) return;
+  if (!user.streakFreezes) user.streakFreezes = 0;
+  if (!user.purchaseLog) user.purchaseLog = [];
+  if (user.minutesBank < STREAK_FREEZE_COST) return;
+  if (user.streakFreezes >= STREAK_FREEZE_MAX) return;
+  user.minutesBank -= STREAK_FREEZE_COST;
+  user.streakFreezes++;
+  user.purchaseLog.push({ date: getTodayStr(), item: 'Streak Freeze', cost: STREAK_FREEZE_COST });
+  await updateUser(user);
+  refreshApp();
+  renderShop();
+}
+
 // ==================== ADMIN DASHBOARD ====================
 async function renderAdmin() {
   // Reload from Gist to get latest data from all devices
@@ -956,6 +1024,24 @@ async function renderAdmin() {
 
   if (profiles.length === 0) {
     weeklyEl.innerHTML = '<p style="color:var(--text-muted);">No users to show.</p>';
+  }
+
+  // Purchase history
+  const purchasesEl = document.getElementById('admin-purchases');
+  const usersWithPurchases = profiles.filter(p => (p.purchaseLog || []).length > 0);
+  if (usersWithPurchases.length === 0) {
+    purchasesEl.innerHTML = '<p style="color:var(--text-muted);">No purchases yet.</p>';
+  } else {
+    purchasesEl.innerHTML = usersWithPurchases.map(u => {
+      const log = (u.purchaseLog || []).slice().reverse();
+      return `<div style="margin-bottom:14px;">
+        <h3 style="margin-bottom:8px;">${u.name} <span style="font-weight:400;color:var(--text-muted);font-size:0.82rem;">· ${u.streakFreezes || 0} freeze${(u.streakFreezes || 0) !== 1 ? 's' : ''} owned</span></h3>
+        ${log.map(e => `<div class="purchase-history-item">
+          <span>${e.item}</span>
+          <span style="color:var(--text-muted);">${e.date} · ${e.cost}m</span>
+        </div>`).join('')}
+      </div>`;
+    }).join('');
   }
 }
 

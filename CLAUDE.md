@@ -27,7 +27,7 @@ All shared data lives in a GitHub Gist (`data.json` file) as a JSON object with 
 
 User object shape:
 ```
-{ id, name, pin, isAdmin, theme, mode, minutesBank, practiceLog: [{date, minutes}], usageLog: [{date, minutesUsed, overtime}] }
+{ id, name, pin, isAdmin, theme, mode, minutesBank, practiceLog: [{date, minutes}], usageLog: [{date, minutesUsed, overtime}], streak, lastPracticeDate, claimedMilestones, streakFreezes, purchaseLog: [{date, item, cost}] }
 ```
 
 ## GitHub Gist Backend
@@ -69,7 +69,7 @@ Two parallel theme objects (`THEMES_DARK` and `THEMES_LIGHT`) each define 7 past
 ## Versioning
 
 **Always bump `APP_VERSION` at the top of `script.js` when making any code changes.** Format is `MAJOR.MINOR.PATCH`:
-- **PATCH** (e.g. 1.1.0 → 1.1.1): bug fixes
+- **PATCH** (e.g. 1.1.0 → 1.1.1): small updates, tweaks, bug fixes — change the last number
 - **MINOR** (e.g. 1.1.1 → 1.2.0): new features
 - **MAJOR** (e.g. 1.2.0 → 2.0.0): breaking changes
 
