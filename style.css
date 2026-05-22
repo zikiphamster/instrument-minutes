@@ -108,17 +108,31 @@ label { display: block; font-weight: 600; margin-bottom: 5px; font-size: 0.9rem;
   padding: 6px 0 env(safe-area-inset-bottom, 8px);
 }
 .bottom-nav button {
-  flex: 1; display: flex; flex-direction: column; align-items: center;
-  gap: 2px; padding: 6px 4px;
+  flex: 1; display: flex; align-items: center; justify-content: center;
+  padding: 10px 4px;
   border: none; background: transparent;
-  color: var(--text-muted); font-size: 0.68rem; font-weight: 600;
-  cursor: pointer; transition: color 0.15s;
+  color: var(--accent);
+  cursor: pointer; transition: color 0.15s, transform 0.15s;
+  position: relative;
+}
+.bottom-nav button:active {
+  transform: scale(0.85);
 }
 .bottom-nav button.active {
   color: var(--accent-dark);
 }
+.bottom-nav button.active::after {
+  content: '';
+  position: absolute;
+  top: 50%; left: 50%;
+  width: 44px; height: 44px;
+  transform: translate(-50%, -50%);
+  border: 1.5px solid var(--accent);
+  border-radius: 10px;
+  pointer-events: none;
+}
 .bottom-nav button svg {
-  width: 22px; height: 22px;
+  width: 28px; height: 28px;
 }
 
 /* Timer display */
