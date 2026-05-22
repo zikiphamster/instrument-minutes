@@ -1,5 +1,5 @@
 // ==================== VERSION ====================
-const APP_VERSION = '1.12.0';
+const APP_VERSION = '1.12.3';
 
 // ==================== CONFIG ====================
 const GIST_ID = 'ab0f0b0a12593cccc0efd7db998410e4';
@@ -900,6 +900,13 @@ function adminSettings() {
 const STREAK_FREEZE_COST = 45;
 const STREAK_FREEZE_MAX = 2;
 
+function freezeIconSVG(size) {
+  return `<svg viewBox="-5 -3 110 155" width="${size}" height="${size}">
+    <path d="M50 8C50 8 26 35 12 60C2 76 0 88 0 96A50 50 0 0 0 100 96C100 88 98 76 88 60C74 35 50 8 50 8Z" fill="#5CC6F2" stroke="#fff" stroke-width="5" stroke-linejoin="round"/>
+    <path d="M50 60C50 60 34 82 31 96C28 108 37 117 50 117C63 117 72 108 69 96C66 82 50 60 50 60Z" fill="#8ED8F8"/>
+  </svg>`;
+}
+
 function renderShop() {
   const user = getCurrentUser();
   if (!user) return;
@@ -909,12 +916,13 @@ function renderShop() {
   const contentEl = document.getElementById('shop-content');
   contentEl.innerHTML = `
     <div class="shop-freeze-count">
+      ${freezeIconSVG(80)}
       <div class="shop-freeze-number">${freezes} / ${STREAK_FREEZE_MAX}</div>
       <div class="shop-freeze-label">streak freezes owned</div>
     </div>
     <div class="shop-item">
       <div class="shop-item-info">
-        <div class="shop-item-name">❄️ Streak Freeze</div>
+        <div class="shop-item-name">Streak Freeze</div>
         <div class="shop-item-desc">Protects your streak if you miss a day</div>
         <div class="shop-item-cost">${STREAK_FREEZE_COST} minutes</div>
       </div>
