@@ -1,5 +1,5 @@
 // ==================== VERSION ====================
-const APP_VERSION = '1.12.15';
+const APP_VERSION = '1.12.16';
 
 // ==================== CONFIG ====================
 const GIST_ID = 'ab0f0b0a12593cccc0efd7db998410e4';
@@ -16,21 +16,34 @@ async function loadDB() {
     });
     if (!res.ok) throw new Error('Failed to load data');
     const gist = await res.json();
-    const content = gist.files['data.json'].content;
-    const parsed = JSON.parse(content);
+    // Try primary, fall back to backup
+    let parsed = null;
+    const primary = gist.files['data.json'];
+    if (primary) {
+      parsed = JSON.parse(primary.content);
+    }
+    if (!parsed || !parsed.profiles || parsed.profiles.length === 0) {
+      const backup = gist.files['data-backup.json'];
+      if (backup) {
+        const backupParsed = JSON.parse(backup.content);
+        if (backupParsed && backupParsed.profiles && backupParsed.profiles.length > 0) {
+          console.warn('Primary data empty, restored from backup');
+          parsed = backupParsed;
+        }
+      }
+    }
     db = parsed && parsed.profiles ? parsed : { profiles: [] };
   } catch (e) {
     console.error('loadDB error:', e);
-    // Fall back to localStorage cache
     const cached = localStorage.getItem('im_db_cache');
     if (cached) db = JSON.parse(cached);
   }
 }
 
 async function saveDB() {
-  // Save to localStorage as cache/fallback
   localStorage.setItem('im_db_cache', JSON.stringify(db));
   try {
+    const data = JSON.stringify(db, null, 2);
     await fetch(`https://api.github.com/gists/${GIST_ID}`, {
       method: 'PATCH',
       headers: {
@@ -38,7 +51,10 @@ async function saveDB() {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        files: { 'data.json': { content: JSON.stringify(db, null, 2) } }
+        files: {
+          'data.json': { content: data },
+          'data-backup.json': { content: data }
+        }
       })
     });
   } catch (e) {
