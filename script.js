@@ -1,5 +1,5 @@
 // ==================== VERSION ====================
-const APP_VERSION = '1.12.19';
+const APP_VERSION = '1.12.20';
 
 // ==================== CONFIG ====================
 const GIST_ID = 'ab0f0b0a12593cccc0efd7db998410e4';
@@ -33,19 +33,8 @@ async function loadDB() {
       }
     }
     db = parsed && parsed.profiles ? parsed : { profiles: [] };
-    // Save backup snapshot of data as loaded, before any code modifies it
-    if (db.profiles.length > 0) {
-      fetch(`https://api.github.com/gists/${GIST_ID}`, {
-        method: 'PATCH',
-        headers: {
-          'Authorization': `token ${GITHUB_TOKEN}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          files: { 'data-backup.json': { content: JSON.stringify(db, null, 2) } }
-        })
-      }).catch(() => {});
-    }
+    // Save backup snapshot on startup
+    saveBackup();
   } catch (e) {
     console.error('loadDB error:', e);
     const cached = localStorage.getItem('im_db_cache');
@@ -70,6 +59,20 @@ async function saveDB() {
   } catch (e) {
     console.error('saveDB error:', e);
   }
+}
+
+function saveBackup() {
+  if (db.profiles.length === 0) return;
+  fetch(`https://api.github.com/gists/${GIST_ID}`, {
+    method: 'PATCH',
+    headers: {
+      'Authorization': `token ${GITHUB_TOKEN}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      files: { 'data-backup.json': { content: JSON.stringify(db, null, 2) } }
+    })
+  }).catch(() => {});
 }
 
 function getProfiles() {
@@ -231,6 +234,7 @@ async function logPractice() {
   user.practiceLog.push({ date: new Date().toISOString(), minutes: total });
   updateStreak(user);
   await updateUser(user);
+  saveBackup();
   document.getElementById('practice-hours').value = 0;
   document.getElementById('practice-mins').value = 0;
   refreshApp();
@@ -559,6 +563,7 @@ async function swAddMinutes() {
   user.practiceLog.push({ date: new Date().toISOString(), minutes: totalMins });
   updateStreak(user);
   await updateUser(user);
+  saveBackup();
   swReset();
   refreshApp();
 }
