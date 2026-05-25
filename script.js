@@ -1,5 +1,5 @@
 // ==================== VERSION ====================
-const APP_VERSION = '1.12.17';
+const APP_VERSION = '1.12.18';
 
 // ==================== CONFIG ====================
 const GIST_ID = 'ab0f0b0a12593cccc0efd7db998410e4';
@@ -174,9 +174,12 @@ function switchTab(tabId, btn) {
 }
 
 // ==================== APP ENTRY ====================
-function enterApp() {
+async function enterApp() {
   hideAuthError();
   const user = getCurrentUser();
+  if (user && !user.isAdmin) {
+    await checkStreakReset(user);
+  }
   if (user && user.isAdmin) {
     showScreen('screen-admin');
   } else {
@@ -189,8 +192,6 @@ function enterApp() {
 function refreshApp() {
   const user = getCurrentUser();
   if (!user) { showScreen('screen-auth'); return; }
-  // Check streak reset on load
-  checkStreakReset(user);
   document.getElementById('display-name').textContent = user.name;
   document.getElementById('display-role').textContent = user.isAdmin ? 'Admin' : 'User';
   document.getElementById('btn-admin-dash').style.display = user.isAdmin ? '' : 'none';
