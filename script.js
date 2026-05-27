@@ -1,5 +1,5 @@
 // ==================== VERSION ====================
-const APP_VERSION = '1.12.20';
+const APP_VERSION = '1.12.21';
 
 // ==================== CONFIG ====================
 const GIST_ID = 'ab0f0b0a12593cccc0efd7db998410e4';
@@ -323,11 +323,22 @@ async function checkStreakReset(user) {
   const yesterday = getYesterdayStr();
   if (user.lastPracticeDate !== today && user.lastPracticeDate !== yesterday) {
     if (user.streak !== 0) {
-      if ((user.streakFreezes || 0) > 0) {
-        // Use a streak freeze instead of resetting
-        user.streakFreezes--;
+      // Calculate how many days were missed
+      const lastDate = new Date(user.lastPracticeDate + 'T00:00:00');
+      const todayDate = new Date(today + 'T00:00:00');
+      const missedDays = Math.floor((todayDate - lastDate) / (1000 * 60 * 60 * 24)) - 1;
+      const freezesAvailable = user.streakFreezes || 0;
+
+      if (freezesAvailable >= missedDays && missedDays > 0) {
+        // Enough freezes to cover all missed days
+        user.streakFreezes -= missedDays;
         user.lastPracticeDate = yesterday;
         if (!user.purchaseLog) user.purchaseLog = [];
+        await updateUser(user);
+      } else if (freezesAvailable > 0 && missedDays > 0) {
+        // Some freezes but not enough — use them all, still reset
+        user.streakFreezes = 0;
+        user.streak = 0;
         await updateUser(user);
       } else {
         user.streak = 0;
