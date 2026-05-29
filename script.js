@@ -1,5 +1,5 @@
 // ==================== VERSION ====================
-const APP_VERSION = '1.12.21';
+const APP_VERSION = '1.12.22';
 
 // ==================== CONFIG ====================
 const GIST_ID = 'ab0f0b0a12593cccc0efd7db998410e4';
@@ -46,7 +46,7 @@ async function saveDB() {
   localStorage.setItem('im_db_cache', JSON.stringify(db));
   try {
     const data = JSON.stringify(db, null, 2);
-    await fetch(`https://api.github.com/gists/${GIST_ID}`, {
+    const res = await fetch(`https://api.github.com/gists/${GIST_ID}`, {
       method: 'PATCH',
       headers: {
         'Authorization': `token ${GITHUB_TOKEN}`,
@@ -56,9 +56,26 @@ async function saveDB() {
         files: { 'data.json': { content: data } }
       })
     });
+    if (!res.ok) throw new Error('Save failed');
+    return true;
   } catch (e) {
     console.error('saveDB error:', e);
+    return false;
   }
+}
+
+function showToast(message, isError) {
+  let toast = document.getElementById('save-toast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'save-toast';
+    document.body.appendChild(toast);
+  }
+  toast.textContent = message;
+  toast.className = 'save-toast ' + (isError ? 'save-toast-error' : 'save-toast-ok');
+  toast.offsetHeight; // force reflow
+  toast.classList.add('save-toast-show');
+  setTimeout(() => toast.classList.remove('save-toast-show'), 2000);
 }
 
 function saveBackup() {
@@ -89,8 +106,11 @@ async function updateUser(updatedUser) {
   const idx = db.profiles.findIndex(p => p.id === updatedUser.id);
   if (idx !== -1) {
     db.profiles[idx] = updatedUser;
-    await saveDB();
+    const ok = await saveDB();
+    if (!ok) showToast('Save failed! Check connection.', true);
+    return ok;
   }
+  return false;
 }
 
 // ==================== AUTH ====================
@@ -235,6 +255,7 @@ async function logPractice() {
   updateStreak(user);
   await updateUser(user);
   saveBackup();
+  showToast('Practice saved!');
   document.getElementById('practice-hours').value = 0;
   document.getElementById('practice-mins').value = 0;
   refreshApp();
@@ -575,6 +596,7 @@ async function swAddMinutes() {
   updateStreak(user);
   await updateUser(user);
   saveBackup();
+  showToast('Practice saved!');
   swReset();
   refreshApp();
 }

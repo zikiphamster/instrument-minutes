@@ -254,6 +254,23 @@ label { display: block; font-weight: 600; margin-bottom: 5px; font-size: 0.9rem;
   opacity: 0.5;
 }
 
+/* Save toast */
+.save-toast {
+  position: fixed; bottom: 70px; left: 50%; transform: translateX(-50%) translateY(20px);
+  padding: 8px 18px; border-radius: 8px; font-size: 0.85rem; font-weight: 500;
+  z-index: 9999; opacity: 0; pointer-events: none;
+  transition: opacity 0.25s, transform 0.25s;
+}
+.save-toast-show {
+  opacity: 1; transform: translateX(-50%) translateY(0);
+}
+.save-toast-ok {
+  background: #2e7d32; color: #fff;
+}
+.save-toast-error {
+  background: #c62828; color: #fff;
+}
+
 /* Streak badge */
 .streak-badge {
   display: flex; align-items: center; gap: 4px;
