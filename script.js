@@ -1,5 +1,5 @@
 // ==================== VERSION ====================
-const APP_VERSION = '1.12.23';
+const APP_VERSION = '1.12.24';
 
 // ==================== CONFIG ====================
 const GIST_ID = 'ab0f0b0a12593cccc0efd7db998410e4';
@@ -8,6 +8,7 @@ const GITHUB_TOKEN = atob(_t.join(''));
 
 // ==================== DATA LAYER (GitHub Gist) ====================
 let db = { profiles: [] }; // in-memory cache
+let gistLoadedOk = false; // true only after successful Gist fetch
 
 async function loadDB() {
   try {
@@ -33,14 +34,23 @@ async function loadDB() {
       }
     }
     db = parsed && parsed.profiles ? parsed : { profiles: [] };
+    gistLoadedOk = true;
+    // Update localStorage cache with known-good Gist data
+    localStorage.setItem('im_db_cache', JSON.stringify(db));
   } catch (e) {
     console.error('loadDB error:', e);
+    gistLoadedOk = false;
     const cached = localStorage.getItem('im_db_cache');
     if (cached) db = JSON.parse(cached);
   }
 }
 
 async function saveDB() {
+  if (!gistLoadedOk) {
+    console.warn('saveDB blocked — Gist was not loaded successfully');
+    showToast('Save blocked — no connection', true);
+    return false;
+  }
   try {
     const data = JSON.stringify(db, null, 2);
     const res = await fetch(`https://api.github.com/gists/${GIST_ID}`, {
