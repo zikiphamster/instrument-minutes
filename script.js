@@ -1,5 +1,5 @@
 // ==================== VERSION ====================
-const APP_VERSION = '1.12.22';
+const APP_VERSION = '1.12.23';
 
 // ==================== CONFIG ====================
 const GIST_ID = 'ab0f0b0a12593cccc0efd7db998410e4';
@@ -33,8 +33,6 @@ async function loadDB() {
       }
     }
     db = parsed && parsed.profiles ? parsed : { profiles: [] };
-    // Save backup snapshot on startup
-    saveBackup();
   } catch (e) {
     console.error('loadDB error:', e);
     const cached = localStorage.getItem('im_db_cache');
@@ -43,7 +41,6 @@ async function loadDB() {
 }
 
 async function saveDB() {
-  localStorage.setItem('im_db_cache', JSON.stringify(db));
   try {
     const data = JSON.stringify(db, null, 2);
     const res = await fetch(`https://api.github.com/gists/${GIST_ID}`, {
@@ -57,6 +54,8 @@ async function saveDB() {
       })
     });
     if (!res.ok) throw new Error('Save failed');
+    // Only cache locally after successful Gist save
+    localStorage.setItem('im_db_cache', JSON.stringify(db));
     return true;
   } catch (e) {
     console.error('saveDB error:', e);
@@ -344,26 +343,34 @@ async function checkStreakReset(user) {
   const yesterday = getYesterdayStr();
   if (user.lastPracticeDate !== today && user.lastPracticeDate !== yesterday) {
     if (user.streak !== 0) {
+      // Save original values in case save fails
+      const origStreak = user.streak;
+      const origFreezes = user.streakFreezes || 0;
+      const origLastPractice = user.lastPracticeDate;
+
       // Calculate how many days were missed
       const lastDate = new Date(user.lastPracticeDate + 'T00:00:00');
       const todayDate = new Date(today + 'T00:00:00');
       const missedDays = Math.floor((todayDate - lastDate) / (1000 * 60 * 60 * 24)) - 1;
-      const freezesAvailable = user.streakFreezes || 0;
+      const freezesAvailable = origFreezes;
 
       if (freezesAvailable >= missedDays && missedDays > 0) {
-        // Enough freezes to cover all missed days
-        user.streakFreezes -= missedDays;
+        user.streakFreezes = origFreezes - missedDays;
         user.lastPracticeDate = yesterday;
         if (!user.purchaseLog) user.purchaseLog = [];
-        await updateUser(user);
       } else if (freezesAvailable > 0 && missedDays > 0) {
-        // Some freezes but not enough — use them all, still reset
         user.streakFreezes = 0;
         user.streak = 0;
-        await updateUser(user);
       } else {
         user.streak = 0;
-        await updateUser(user);
+      }
+
+      const ok = await updateUser(user);
+      if (!ok) {
+        // Save failed — revert so we don't persist bad data
+        user.streak = origStreak;
+        user.streakFreezes = origFreezes;
+        user.lastPracticeDate = origLastPractice;
       }
     }
   }
