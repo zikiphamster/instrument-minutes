@@ -315,6 +315,22 @@
   </div>
 </div>
 
+<!-- ========== STREAK LOST POPUP ========== -->
+<div id="streak-lost-popup" class="streak-lost-popup hidden">
+  <div class="streak-lost-backdrop"></div>
+  <div class="streak-lost-card">
+    <svg viewBox="-5 -3 110 155" width="64" height="64" style="margin-bottom:8px;">
+      <path d="M50 8C50 8 26 35 12 60C2 76 0 88 0 96A50 50 0 0 0 100 96C100 88 98 76 88 60C74 35 50 8 50 8Z" fill="#888" stroke="#fff" stroke-width="5" stroke-linejoin="round"/>
+      <path d="M50 60C50 60 34 82 31 96C28 108 37 117 50 117C63 117 72 108 69 96C66 82 50 60 50 60Z" fill="#aaa"/>
+    </svg>
+    <div class="streak-lost-title">You lost your streak!</div>
+    <div class="streak-lost-number" id="streak-lost-count">0</div>
+    <div class="streak-lost-subtitle">day streak lost</div>
+    <button class="btn btn-block btn-success" id="btn-streak-revive" onclick="reviveStreak()" style="margin-top:18px;">Revive for 30 min</button>
+    <button class="btn btn-block btn-outline" onclick="declineRevive()" style="margin-top:8px;">Let it go</button>
+  </div>
+</div>
+
 <!-- ========== SECRET TERMINAL PANEL ========== -->
 <div id="terminal-backdrop" class="terminal-backdrop hidden" onclick="toggleTerminal()"></div>
 <div id="terminal-panel" class="terminal-panel hidden">

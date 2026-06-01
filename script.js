@@ -1,5 +1,5 @@
 // ==================== VERSION ====================
-const APP_VERSION = '1.12.26';
+const APP_VERSION = '1.13.0';
 
 // ==================== CONFIG ====================
 const GIST_ID = 'ab0f0b0a12593cccc0efd7db998410e4';
@@ -347,53 +347,92 @@ function updateStreak(user) {
   if (!user.claimedMilestones) user.claimedMilestones = [];
 }
 
+const STREAK_REVIVE_COST = 30;
+
 async function checkStreakReset(user) {
   if (!user.lastPracticeDate) return;
   const today = getTodayStr();
   const yesterday = getYesterdayStr();
 
-  // If last practice was today or yesterday, streak is safe
-  // If 2+ days ago, missed a full day — reset unless freezes cover it
   const lastDate = new Date(user.lastPracticeDate + 'T00:00:00');
   const todayDate = new Date(today + 'T00:00:00');
   const daysSincePractice = Math.floor((todayDate - lastDate) / (1000 * 60 * 60 * 24));
 
-  // 0 = today, 1 = yesterday
+  // 0 = today, 1 = yesterday — streak safe
   if (daysSincePractice <= 1) {
     if (!user.claimedMilestones) user.claimedMilestones = [];
     return;
   }
 
-  // 2+ days since last practice — missed at least one full day
+  // 2+ days — missed at least one full day
   if (user.streak !== 0) {
-    const origStreak = user.streak;
-    const origFreezes = user.streakFreezes || 0;
-    const origLastPractice = user.lastPracticeDate;
-
-    // Days that need covering: the days between lastPractice and yesterday
-    // (today doesn't count — user can still practice today)
     const missedDays = daysSincePractice - 1;
-    const freezesAvailable = origFreezes;
+    const freezesAvailable = user.streakFreezes || 0;
 
     if (freezesAvailable >= missedDays && missedDays > 0) {
-      user.streakFreezes = origFreezes - missedDays;
+      // Auto-use freezes to cover gap
+      const origFreezes = freezesAvailable;
+      const origLastPractice = user.lastPracticeDate;
+      user.streakFreezes = freezesAvailable - missedDays;
       user.lastPracticeDate = yesterday;
       if (!user.purchaseLog) user.purchaseLog = [];
-    } else if (freezesAvailable > 0 && missedDays > 0) {
-      user.streakFreezes = 0;
-      user.streak = 0;
+      const ok = await updateUser(user);
+      if (!ok) {
+        user.streakFreezes = origFreezes;
+        user.lastPracticeDate = origLastPractice;
+      }
     } else {
-      user.streak = 0;
-    }
-
-    const ok = await updateUser(user);
-    if (!ok) {
-      user.streak = origStreak;
-      user.streakFreezes = origFreezes;
-      user.lastPracticeDate = origLastPractice;
+      // Not enough freezes — show revive popup instead of resetting immediately
+      showStreakLostPopup(user);
     }
   }
   if (!user.claimedMilestones) user.claimedMilestones = [];
+}
+
+function showStreakLostPopup(user) {
+  const lostStreak = user.streak;
+  const canRevive = user.minutesBank >= STREAK_REVIVE_COST;
+  const popup = document.getElementById('streak-lost-popup');
+  document.getElementById('streak-lost-count').textContent = lostStreak;
+  const reviveBtn = document.getElementById('btn-streak-revive');
+  reviveBtn.disabled = !canRevive;
+  reviveBtn.textContent = canRevive ? `Revive for ${STREAK_REVIVE_COST} min` : 'Not enough minutes';
+  popup.classList.remove('hidden');
+}
+
+async function reviveStreak() {
+  const user = getCurrentUser();
+  if (!user || user.minutesBank < STREAK_REVIVE_COST) return;
+  const origMinutes = user.minutesBank;
+  const origLastPractice = user.lastPracticeDate;
+  user.minutesBank -= STREAK_REVIVE_COST;
+  user.lastPracticeDate = getYesterdayStr();
+  if (!user.purchaseLog) user.purchaseLog = [];
+  user.purchaseLog.push({ date: getTodayStr(), item: 'Streak Revive', cost: STREAK_REVIVE_COST });
+  const ok = await updateUser(user);
+  if (!ok) {
+    user.minutesBank = origMinutes;
+    user.lastPracticeDate = origLastPractice;
+    user.purchaseLog.pop();
+  } else {
+    showToast('Streak revived!');
+    saveBackup();
+  }
+  document.getElementById('streak-lost-popup').classList.add('hidden');
+  refreshApp();
+}
+
+async function declineRevive() {
+  const user = getCurrentUser();
+  if (!user) return;
+  const origStreak = user.streak;
+  user.streak = 0;
+  const ok = await updateUser(user);
+  if (!ok) {
+    user.streak = origStreak;
+  }
+  document.getElementById('streak-lost-popup').classList.add('hidden');
+  refreshApp();
 }
 
 function refreshStreakDisplay() {
@@ -988,7 +1027,7 @@ function adminSettings() {
 }
 
 // ==================== SHOP ====================
-const STREAK_FREEZE_COST = 45;
+const STREAK_FREEZE_COST = 30;
 const STREAK_FREEZE_MAX = 2;
 
 function freezeIconSVG(size) {
