@@ -1,5 +1,5 @@
 // ==================== VERSION ====================
-const APP_VERSION = '1.12.24';
+const APP_VERSION = '1.12.26';
 
 // ==================== CONFIG ====================
 const GIST_ID = 'ab0f0b0a12593cccc0efd7db998410e4';
@@ -351,37 +351,46 @@ async function checkStreakReset(user) {
   if (!user.lastPracticeDate) return;
   const today = getTodayStr();
   const yesterday = getYesterdayStr();
-  if (user.lastPracticeDate !== today && user.lastPracticeDate !== yesterday) {
-    if (user.streak !== 0) {
-      // Save original values in case save fails
-      const origStreak = user.streak;
-      const origFreezes = user.streakFreezes || 0;
-      const origLastPractice = user.lastPracticeDate;
 
-      // Calculate how many days were missed
-      const lastDate = new Date(user.lastPracticeDate + 'T00:00:00');
-      const todayDate = new Date(today + 'T00:00:00');
-      const missedDays = Math.floor((todayDate - lastDate) / (1000 * 60 * 60 * 24)) - 1;
-      const freezesAvailable = origFreezes;
+  // If last practice was today or yesterday, streak is safe
+  // If 2+ days ago, missed a full day — reset unless freezes cover it
+  const lastDate = new Date(user.lastPracticeDate + 'T00:00:00');
+  const todayDate = new Date(today + 'T00:00:00');
+  const daysSincePractice = Math.floor((todayDate - lastDate) / (1000 * 60 * 60 * 24));
 
-      if (freezesAvailable >= missedDays && missedDays > 0) {
-        user.streakFreezes = origFreezes - missedDays;
-        user.lastPracticeDate = yesterday;
-        if (!user.purchaseLog) user.purchaseLog = [];
-      } else if (freezesAvailable > 0 && missedDays > 0) {
-        user.streakFreezes = 0;
-        user.streak = 0;
-      } else {
-        user.streak = 0;
-      }
+  // 0 = today, 1 = yesterday
+  if (daysSincePractice <= 1) {
+    if (!user.claimedMilestones) user.claimedMilestones = [];
+    return;
+  }
 
-      const ok = await updateUser(user);
-      if (!ok) {
-        // Save failed — revert so we don't persist bad data
-        user.streak = origStreak;
-        user.streakFreezes = origFreezes;
-        user.lastPracticeDate = origLastPractice;
-      }
+  // 2+ days since last practice — missed at least one full day
+  if (user.streak !== 0) {
+    const origStreak = user.streak;
+    const origFreezes = user.streakFreezes || 0;
+    const origLastPractice = user.lastPracticeDate;
+
+    // Days that need covering: the days between lastPractice and yesterday
+    // (today doesn't count — user can still practice today)
+    const missedDays = daysSincePractice - 1;
+    const freezesAvailable = origFreezes;
+
+    if (freezesAvailable >= missedDays && missedDays > 0) {
+      user.streakFreezes = origFreezes - missedDays;
+      user.lastPracticeDate = yesterday;
+      if (!user.purchaseLog) user.purchaseLog = [];
+    } else if (freezesAvailable > 0 && missedDays > 0) {
+      user.streakFreezes = 0;
+      user.streak = 0;
+    } else {
+      user.streak = 0;
+    }
+
+    const ok = await updateUser(user);
+    if (!ok) {
+      user.streak = origStreak;
+      user.streakFreezes = origFreezes;
+      user.lastPracticeDate = origLastPractice;
     }
   }
   if (!user.claimedMilestones) user.claimedMilestones = [];
