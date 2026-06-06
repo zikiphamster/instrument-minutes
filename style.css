@@ -288,6 +288,9 @@ label { display: block; font-weight: 600; margin-bottom: 5px; font-size: 0.9rem;
   max-width: 320px; width: 90%;
   box-shadow: 0 8px 32px rgba(0,0,0,0.5);
 }
+.streak-lost-card .btn + .btn {
+  margin-left: 0;
+}
 .streak-lost-title {
   font-size: 1.3rem; font-weight: 700; color: var(--text);
   margin-bottom: 8px;
