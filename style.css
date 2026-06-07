@@ -376,14 +376,20 @@ label { display: block; font-weight: 600; margin-bottom: 5px; font-size: 0.9rem;
 }
 .calendar-day {
   aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
-  border-radius: 50%; font-size: 0.82rem; font-weight: 500;
+  border-radius: 8px; font-size: 0.82rem; font-weight: 500;
   color: var(--text-muted);
 }
-.calendar-day.cal-practiced {
-  background: #FFCC4D; color: #fff; font-weight: 700;
+.calendar-day.cal-practiced .cal-circle,
+.calendar-day.cal-frozen .cal-circle {
+  display: flex; align-items: center; justify-content: center;
+  width: 24px; height: 24px; border-radius: 50%;
+  font-weight: 700; font-size: 0.75rem; color: #fff;
 }
-.calendar-day.cal-frozen {
-  background: #8ED8F8; color: #fff; font-weight: 700;
+.calendar-day.cal-practiced .cal-circle {
+  background: #F4900C;
+}
+.calendar-day.cal-frozen .cal-circle {
+  background: #5CC6F2;
 }
 .calendar-day.today {
   border: 2px solid var(--accent-dark);

@@ -1,9 +1,9 @@
 // ==================== VERSION ====================
-const APP_VERSION = '1.15.4';
+const APP_VERSION = '1.15.5';
 
 // ==================== CHANGELOG ====================
 const CHANGELOG = [
-  { version: '1.15.4', notes: 'Calendar now shows colored circles — yellow for practiced days, blue for freeze days.' },
+  { version: '1.15.5', notes: 'Calendar uses small colored circles around day numbers — orange for practiced, blue for freeze.' },
   { version: '1.15.0', notes: "What's New popup — see what changed after each update." },
   { version: '1.14.0', notes: 'Calendar shows flame icons on practiced days. Blue flames for streak freeze days.' },
   { version: '1.13.0', notes: 'Streak lost popup — revive your streak for 30 minutes instead of losing it.' },
@@ -558,10 +558,10 @@ function renderStreakCalendar() {
 
     if (practiced) {
       classes.push('cal-practiced');
-      html += `<div class="${classes.join(' ')}">${day}</div>`;
+      html += `<div class="${classes.join(' ')}"><span class="cal-circle">${day}</span></div>`;
     } else if (frozen) {
       classes.push('cal-frozen');
-      html += `<div class="${classes.join(' ')}">${day}</div>`;
+      html += `<div class="${classes.join(' ')}"><span class="cal-circle">${day}</span></div>`;
     } else {
       html += `<div class="${classes.join(' ')}">${day}</div>`;
     }
