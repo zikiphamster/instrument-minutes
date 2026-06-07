@@ -1,5 +1,5 @@
 // ==================== VERSION ====================
-const APP_VERSION = '1.13.1';
+const APP_VERSION = '1.14.0';
 
 // ==================== CONFIG ====================
 const GIST_ID = 'ab0f0b0a12593cccc0efd7db998410e4';
@@ -376,6 +376,14 @@ async function checkStreakReset(user) {
       user.streakFreezes = freezesAvailable - missedDays;
       user.lastPracticeDate = yesterday;
       if (!user.purchaseLog) user.purchaseLog = [];
+      if (!user.freezeDates) user.freezeDates = [];
+      // Log each frozen day
+      for (let i = 1; i <= missedDays; i++) {
+        const frozenDate = new Date(lastDate);
+        frozenDate.setDate(frozenDate.getDate() + i);
+        const ds = frozenDate.getFullYear() + '-' + String(frozenDate.getMonth() + 1).padStart(2, '0') + '-' + String(frozenDate.getDate()).padStart(2, '0');
+        if (!user.freezeDates.includes(ds)) user.freezeDates.push(ds);
+      }
       const ok = await updateUser(user);
       if (!ok) {
         user.streakFreezes = origFreezes;
@@ -505,7 +513,15 @@ function renderStreakCalendar() {
     }
   });
 
-  const todayStr = getTodayStr();
+  // Get freeze dates for this month
+  const frozenDates = new Set();
+  (user.freezeDates || []).forEach(ds => {
+    const parts = ds.split('-');
+    if (parseInt(parts[0]) === year && parseInt(parts[1]) === month + 1) {
+      frozenDates.add(parseInt(parts[2]));
+    }
+  });
+
   const todayDate = new Date();
   const isCurrentMonth = todayDate.getFullYear() === year && todayDate.getMonth() === month;
 
@@ -521,13 +537,24 @@ function renderStreakCalendar() {
     html += '<div class="calendar-day"></div>';
   }
 
+  const flameOrange = `<svg class="cal-flame" viewBox="-5 -3 110 155"><path d="M50 8C50 8 26 35 12 60C2 76 0 88 0 96A50 50 0 0 0 100 96C100 88 98 76 88 60C74 35 50 8 50 8Z" fill="var(--accent)" stroke="#fff" stroke-width="5" stroke-linejoin="round"/><path d="M50 60C50 60 34 82 31 96C28 108 37 117 50 117C63 117 72 108 69 96C66 82 50 60 50 60Z" fill="var(--accent-dark)"/></svg>`;
+  const flameBlue = `<svg class="cal-flame" viewBox="-5 -3 110 155"><path d="M50 8C50 8 26 35 12 60C2 76 0 88 0 96A50 50 0 0 0 100 96C100 88 98 76 88 60C74 35 50 8 50 8Z" fill="#5CC6F2" stroke="#fff" stroke-width="5" stroke-linejoin="round"/><path d="M50 60C50 60 34 82 31 96C28 108 37 117 50 117C63 117 72 108 69 96C66 82 50 60 50 60Z" fill="#8ED8F8"/></svg>`;
+
   for (let day = 1; day <= lastDay.getDate(); day++) {
     const practiced = practicedDates.has(day);
+    const frozen = frozenDates.has(day);
     const isToday = isCurrentMonth && day === todayDate.getDate();
     const classes = ['calendar-day'];
-    if (practiced) classes.push('practiced');
+    if (practiced || frozen) classes.push('cal-streak');
     if (isToday) classes.push('today');
-    html += `<div class="${classes.join(' ')}">${day}</div>`;
+
+    if (practiced) {
+      html += `<div class="${classes.join(' ')}">${flameOrange}<span class="cal-day-num">${day}</span></div>`;
+    } else if (frozen) {
+      html += `<div class="${classes.join(' ')}">${flameBlue}<span class="cal-day-num">${day}</span></div>`;
+    } else {
+      html += `<div class="${classes.join(' ')}">${day}</div>`;
+    }
   }
 
   document.getElementById('calendar-grid').innerHTML = html;

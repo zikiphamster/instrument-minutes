@@ -340,10 +340,17 @@ label { display: block; font-weight: 600; margin-bottom: 5px; font-size: 0.9rem;
 .calendar-day {
   aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
   border-radius: 8px; font-size: 0.82rem; font-weight: 500;
-  color: var(--text-muted);
+  color: var(--text-muted); position: relative;
 }
-.calendar-day.practiced {
-  background: var(--accent); color: #fff; font-weight: 700;
+.calendar-day.cal-streak {
+  background: none; color: #fff; font-weight: 700;
+}
+.calendar-day .cal-flame {
+  position: absolute; inset: 2px; width: calc(100% - 4px); height: calc(100% - 4px);
+}
+.calendar-day .cal-day-num {
+  position: relative; z-index: 1; font-size: 0.72rem; font-weight: 700;
+  color: #fff; margin-top: 6px;
 }
 .calendar-day.today {
   border: 2px solid var(--accent-dark);
