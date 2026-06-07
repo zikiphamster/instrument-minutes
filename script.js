@@ -1,5 +1,5 @@
 // ==================== VERSION ====================
-const APP_VERSION = '1.15.0';
+const APP_VERSION = '1.15.1';
 
 // ==================== CHANGELOG ====================
 const CHANGELOG = [
@@ -548,7 +548,7 @@ function renderStreakCalendar() {
     html += '<div class="calendar-day"></div>';
   }
 
-  const flameOrange = `<svg class="cal-flame" viewBox="-5 -3 110 155"><path d="M50 8C50 8 26 35 12 60C2 76 0 88 0 96A50 50 0 0 0 100 96C100 88 98 76 88 60C74 35 50 8 50 8Z" fill="var(--accent)" stroke="#fff" stroke-width="5" stroke-linejoin="round"/><path d="M50 60C50 60 34 82 31 96C28 108 37 117 50 117C63 117 72 108 69 96C66 82 50 60 50 60Z" fill="var(--accent-dark)"/></svg>`;
+  const flameOrange = `<svg class="cal-flame" viewBox="-5 -3 110 155"><path d="M50 8C50 8 26 35 12 60C2 76 0 88 0 96A50 50 0 0 0 100 96C100 88 98 76 88 60C74 35 50 8 50 8Z" fill="#ff6b35" stroke="#fff" stroke-width="5" stroke-linejoin="round"/><path d="M50 60C50 60 34 82 31 96C28 108 37 117 50 117C63 117 72 108 69 96C66 82 50 60 50 60Z" fill="#ffb347"/></svg>`;
   const flameBlue = `<svg class="cal-flame" viewBox="-5 -3 110 155"><path d="M50 8C50 8 26 35 12 60C2 76 0 88 0 96A50 50 0 0 0 100 96C100 88 98 76 88 60C74 35 50 8 50 8Z" fill="#5CC6F2" stroke="#fff" stroke-width="5" stroke-linejoin="round"/><path d="M50 60C50 60 34 82 31 96C28 108 37 117 50 117C63 117 72 108 69 96C66 82 50 60 50 60Z" fill="#8ED8F8"/></svg>`;
 
   for (let day = 1; day <= lastDay.getDate(); day++) {

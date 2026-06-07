@@ -383,7 +383,7 @@ label { display: block; font-weight: 600; margin-bottom: 5px; font-size: 0.9rem;
   background: none; color: #fff; font-weight: 700;
 }
 .calendar-day .cal-flame {
-  position: absolute; inset: 2px; width: calc(100% - 4px); height: calc(100% - 4px);
+  position: absolute; width: 65%; height: 65%; top: 10%;
 }
 .calendar-day .cal-day-num {
   position: relative; z-index: 1; font-size: 0.72rem; font-weight: 700;
