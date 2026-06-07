@@ -1,9 +1,9 @@
 // ==================== VERSION ====================
-const APP_VERSION = '1.15.3';
+const APP_VERSION = '1.15.4';
 
 // ==================== CHANGELOG ====================
 const CHANGELOG = [
-  { version: '1.15.3', notes: 'Calendar flame numbers centered in the inner flame.' },
+  { version: '1.15.4', notes: 'Calendar now shows colored circles — yellow for practiced days, blue for freeze days.' },
   { version: '1.15.0', notes: "What's New popup — see what changed after each update." },
   { version: '1.14.0', notes: 'Calendar shows flame icons on practiced days. Blue flames for streak freeze days.' },
   { version: '1.13.0', notes: 'Streak lost popup — revive your streak for 30 minutes instead of losing it.' },
@@ -549,21 +549,19 @@ function renderStreakCalendar() {
     html += '<div class="calendar-day"></div>';
   }
 
-  const flameOrange = `<svg class="cal-flame" viewBox="-5 -3 110 155"><path d="M50 8C50 8 26 35 12 60C2 76 0 88 0 96A50 50 0 0 0 100 96C100 88 98 76 88 60C74 35 50 8 50 8Z" fill="#F4900C" stroke="#fff" stroke-width="5" stroke-linejoin="round"/><path d="M50 60C50 60 34 82 31 96C28 108 37 117 50 117C63 117 72 108 69 96C66 82 50 60 50 60Z" fill="#FFCC4D"/></svg>`;
-  const flameBlue = `<svg class="cal-flame" viewBox="-5 -3 110 155"><path d="M50 8C50 8 26 35 12 60C2 76 0 88 0 96A50 50 0 0 0 100 96C100 88 98 76 88 60C74 35 50 8 50 8Z" fill="#5CC6F2" stroke="#fff" stroke-width="5" stroke-linejoin="round"/><path d="M50 60C50 60 34 82 31 96C28 108 37 117 50 117C63 117 72 108 69 96C66 82 50 60 50 60Z" fill="#8ED8F8"/></svg>`;
-
   for (let day = 1; day <= lastDay.getDate(); day++) {
     const practiced = practicedDates.has(day);
     const frozen = frozenDates.has(day);
     const isToday = isCurrentMonth && day === todayDate.getDate();
     const classes = ['calendar-day'];
-    if (practiced || frozen) classes.push('cal-streak');
     if (isToday) classes.push('today');
 
     if (practiced) {
-      html += `<div class="${classes.join(' ')}">${flameOrange}<span class="cal-day-num">${day}</span></div>`;
+      classes.push('cal-practiced');
+      html += `<div class="${classes.join(' ')}">${day}</div>`;
     } else if (frozen) {
-      html += `<div class="${classes.join(' ')}">${flameBlue}<span class="cal-day-num">${day}</span></div>`;
+      classes.push('cal-frozen');
+      html += `<div class="${classes.join(' ')}">${day}</div>`;
     } else {
       html += `<div class="${classes.join(' ')}">${day}</div>`;
     }

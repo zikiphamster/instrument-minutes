@@ -376,18 +376,14 @@ label { display: block; font-weight: 600; margin-bottom: 5px; font-size: 0.9rem;
 }
 .calendar-day {
   aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
-  border-radius: 8px; font-size: 0.82rem; font-weight: 500;
-  color: var(--text-muted); position: relative;
+  border-radius: 50%; font-size: 0.82rem; font-weight: 500;
+  color: var(--text-muted);
 }
-.calendar-day.cal-streak {
-  background: none; color: #fff; font-weight: 700;
+.calendar-day.cal-practiced {
+  background: #FFCC4D; color: #fff; font-weight: 700;
 }
-.calendar-day .cal-flame {
-  position: absolute; width: 50%; height: 50%; top: 2%;
-}
-.calendar-day .cal-day-num {
-  position: relative; z-index: 1; font-size: 0.7rem; font-weight: 700;
-  color: #fff; margin-top: 10px;
+.calendar-day.cal-frozen {
+  background: #8ED8F8; color: #fff; font-weight: 700;
 }
 .calendar-day.today {
   border: 2px solid var(--accent-dark);
