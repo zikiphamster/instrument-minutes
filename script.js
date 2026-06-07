@@ -1,8 +1,9 @@
 // ==================== VERSION ====================
-const APP_VERSION = '1.15.5';
+const APP_VERSION = '1.15.6';
 
 // ==================== CHANGELOG ====================
 const CHANGELOG = [
+  { version: '1.15.6', notes: 'Calendar streak circles slightly larger for better visibility.' },
   { version: '1.15.5', notes: 'Calendar uses small colored circles around day numbers — orange for practiced, blue for freeze.' },
   { version: '1.15.0', notes: "What's New popup — see what changed after each update." },
   { version: '1.14.0', notes: 'Calendar shows flame icons on practiced days. Blue flames for streak freeze days.' },
