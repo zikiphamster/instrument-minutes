@@ -383,11 +383,11 @@ label { display: block; font-weight: 600; margin-bottom: 5px; font-size: 0.9rem;
   background: none; color: #fff; font-weight: 700;
 }
 .calendar-day .cal-flame {
-  position: absolute; width: 65%; height: 65%; top: 10%;
+  position: absolute; width: 50%; height: 50%; top: 8%;
 }
 .calendar-day .cal-day-num {
-  position: relative; z-index: 1; font-size: 0.72rem; font-weight: 700;
-  color: #fff; margin-top: 6px;
+  position: relative; z-index: 1; font-size: 0.7rem; font-weight: 700;
+  color: #fff; margin-top: 4px;
 }
 .calendar-day.today {
   border: 2px solid var(--accent-dark);
