@@ -303,6 +303,43 @@ label { display: block; font-weight: 600; margin-bottom: 5px; font-size: 0.9rem;
   margin-bottom: 4px;
 }
 
+/* What's New popup */
+.whats-new-popup {
+  position: fixed; inset: 0; z-index: 10000;
+  display: flex; align-items: center; justify-content: center;
+}
+.whats-new-popup.hidden { display: none; }
+.whats-new-backdrop {
+  position: absolute; inset: 0;
+  background: rgba(0,0,0,0.7);
+}
+.whats-new-card {
+  position: relative; z-index: 1;
+  background: var(--bg2); border-radius: 18px;
+  padding: 28px 24px; max-width: 340px; width: 90%;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  max-height: 80vh; display: flex; flex-direction: column;
+}
+.whats-new-title {
+  font-size: 1.3rem; font-weight: 700; color: var(--text);
+  margin-bottom: 16px; text-align: center;
+}
+.whats-new-content {
+  overflow-y: auto; flex: 1;
+}
+.whats-new-entry {
+  display: flex; gap: 10px; align-items: baseline;
+  padding: 8px 0; border-bottom: 1px solid var(--accent-light);
+  font-size: 0.88rem; color: var(--text);
+}
+.whats-new-entry:last-child { border-bottom: none; }
+.whats-new-version {
+  font-size: 0.72rem; font-weight: 700;
+  background: var(--accent); color: #fff;
+  padding: 2px 6px; border-radius: 4px;
+  white-space: nowrap; flex-shrink: 0;
+}
+
 /* Streak badge */
 .streak-badge {
   display: flex; align-items: center; gap: 4px;

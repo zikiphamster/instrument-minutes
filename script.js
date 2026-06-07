@@ -1,5 +1,16 @@
 // ==================== VERSION ====================
-const APP_VERSION = '1.14.0';
+const APP_VERSION = '1.15.0';
+
+// ==================== CHANGELOG ====================
+const CHANGELOG = [
+  { version: '1.15.0', notes: "What's New popup — see what changed after each update." },
+  { version: '1.14.0', notes: 'Calendar shows flame icons on practiced days. Blue flames for streak freeze days.' },
+  { version: '1.13.0', notes: 'Streak lost popup — revive your streak for 30 minutes instead of losing it.' },
+  { version: '1.12.0', notes: 'Shop tab — buy streak freezes to protect your streak when you miss a day.' },
+  { version: '1.11.0', notes: 'Milestone rewards made much more generous.' },
+  { version: '1.10.0', notes: 'Secret terminal panel (Cmd+Shift+\\) for power-user commands.' },
+  { version: '1.9.0', notes: 'Timer redesigned — tap Start, timer counts up, tap Finish to use minutes.' },
+];
 
 // ==================== CONFIG ====================
 const GIST_ID = 'ab0f0b0a12593cccc0efd7db998410e4';
@@ -1390,6 +1401,61 @@ async function termCmdClearData(args) {
   }
 }
 
+// ==================== WHAT'S NEW ====================
+function compareVersions(a, b) {
+  const pa = a.split('.').map(Number);
+  const pb = b.split('.').map(Number);
+  for (let i = 0; i < 3; i++) {
+    if ((pa[i] || 0) > (pb[i] || 0)) return 1;
+    if ((pa[i] || 0) < (pb[i] || 0)) return -1;
+  }
+  return 0;
+}
+
+function checkWhatsNew(user) {
+  if (!user) return;
+  const key = 'im_whatsNew_' + user.id;
+  const lastSeen = localStorage.getItem(key);
+  if (lastSeen === APP_VERSION) return;
+
+  // Collect entries newer than lastSeen
+  let entries;
+  if (!lastSeen) {
+    // First time — just show the current version
+    entries = CHANGELOG.filter(e => e.version === APP_VERSION);
+  } else {
+    entries = CHANGELOG.filter(e => compareVersions(e.version, lastSeen) > 0);
+  }
+  if (entries.length === 0) {
+    localStorage.setItem(key, APP_VERSION);
+    return;
+  }
+
+  // Sort oldest first for display
+  entries.sort((a, b) => compareVersions(a.version, b.version));
+  showWhatsNew(entries);
+}
+
+function showWhatsNew(entries) {
+  const popup = document.getElementById('whats-new-popup');
+  const content = document.getElementById('whats-new-content');
+  content.innerHTML = entries.map(e =>
+    `<div class="whats-new-entry">
+      <span class="whats-new-version">v${e.version}</span>
+      <span>${e.notes}</span>
+    </div>`
+  ).join('');
+  popup.classList.remove('hidden');
+}
+
+function dismissWhatsNew() {
+  const user = getCurrentUser();
+  if (user) {
+    localStorage.setItem('im_whatsNew_' + user.id, APP_VERSION);
+  }
+  document.getElementById('whats-new-popup').classList.add('hidden');
+}
+
 // ==================== INIT ====================
 (async function init() {
   document.getElementById('version-badge').textContent = 'v' + APP_VERSION;
@@ -1429,6 +1495,7 @@ async function termCmdClearData(args) {
 
   const user = getCurrentUser();
   if (user) {
+    checkWhatsNew(user);
     enterApp();
   }
 })();
