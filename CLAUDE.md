@@ -74,3 +74,5 @@ Two parallel theme objects (`THEMES_DARK` and `THEMES_LIGHT`) each define 7 past
 - **MAJOR** (e.g. 1.2.0 → 2.0.0): breaking changes
 
 The version displays as a badge in the bottom-right corner of the page.
+
+**Always add a `CHANGELOG` entry** when bumping the version. The `CHANGELOG` array is at the top of `script.js` (right after `APP_VERSION`). Add a new entry at the top of the array with a short user-facing description of what changed. This powers the "What's New" popup that appears on first load after an update.

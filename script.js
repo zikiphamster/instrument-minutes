@@ -3,6 +3,7 @@ const APP_VERSION = '1.15.1';
 
 // ==================== CHANGELOG ====================
 const CHANGELOG = [
+  { version: '1.15.1', notes: 'Calendar flames now use the standard streak orange color and are smaller.' },
   { version: '1.15.0', notes: "What's New popup — see what changed after each update." },
   { version: '1.14.0', notes: 'Calendar shows flame icons on practiced days. Blue flames for streak freeze days.' },
   { version: '1.13.0', notes: 'Streak lost popup — revive your streak for 30 minutes instead of losing it.' },
