@@ -16,7 +16,7 @@ const CHANGELOG = [
 
 // ==================== CONFIG ====================
 const GIST_ID = 'ab0f0b0a12593cccc0efd7db998410e4';
-const _t = ['Z2hwX0NnTVJZ', 'YzdsMDRjM0g4', 'VWV6cVlBUDBU', 'S0VUSnlPdjFT', 'RUQ3Vw=='];
+const _t = ['Z2hwX1NvQnZI', 'T1pmcHlBTmsw', 'bEhET2xlM1dY', 'YkVuVHJzSjFF', 'bVFsQg=='];
 const GITHUB_TOKEN = atob(_t.join(''));
 
 // ==================== DATA LAYER (GitHub Gist) ====================
