@@ -1,8 +1,9 @@
 // ==================== VERSION ====================
-const APP_VERSION = '1.16.1';
+const APP_VERSION = '1.16.2';
 
 // ==================== CHANGELOG ====================
 const CHANGELOG = [
+  { version: '1.16.2', notes: 'Goal complete popup — celebration when you hit a practice target.' },
   { version: '1.16.1', notes: 'Goals now show on the main page and in the admin dashboard.' },
   { version: '1.16.0', notes: 'Goals tab — set daily, weekly, or monthly targets for practice and screen time.' },
   { version: '1.15.6', notes: 'Calendar streak circles slightly larger for better visibility.' },
@@ -277,12 +278,14 @@ async function logPractice() {
   const total = hours * 60 + mins;
   if (total <= 0) return;
   const user = getCurrentUser();
+  const preProgress = snapshotGoalProgress(user);
   user.minutesBank += total;
   user.practiceLog.push({ date: new Date().toISOString(), minutes: total });
   updateStreak(user);
   await updateUser(user);
   saveBackup();
   showToast('Practice saved!');
+  checkGoalCompletion(user, preProgress);
   document.getElementById('practice-hours').value = 0;
   document.getElementById('practice-mins').value = 0;
   refreshApp();
@@ -699,12 +702,14 @@ async function swAddMinutes() {
   const totalMins = Math.floor(swGetElapsed() / 60);
   if (totalMins <= 0) return;
   const user = getCurrentUser();
+  const preProgress = snapshotGoalProgress(user);
   user.minutesBank += totalMins;
   user.practiceLog.push({ date: new Date().toISOString(), minutes: totalMins });
   updateStreak(user);
   await updateUser(user);
   saveBackup();
   showToast('Practice saved!');
+  checkGoalCompletion(user, preProgress);
   swReset();
   refreshApp();
 }
@@ -1229,6 +1234,46 @@ function renderGoals() {
       <div style="font-size:0.8rem;color:var(--text-muted);margin-top:4px;">${statusText}</div>
     </div>`;
   }).join('');
+}
+
+function snapshotGoalProgress(user) {
+  const goals = user.goals || [];
+  const snap = {};
+  goals.forEach(g => {
+    if (g.type === 'practice') {
+      snap[g.id] = calculateGoalProgress(user, g);
+    }
+  });
+  return snap;
+}
+
+function checkGoalCompletion(user, preProgress) {
+  const goals = user.goals || [];
+  const completed = [];
+  goals.forEach(g => {
+    if (g.type !== 'practice') return;
+    const before = preProgress[g.id] || 0;
+    if (before >= g.target) return; // was already complete
+    const after = calculateGoalProgress(user, g);
+    if (after >= g.target) {
+      const timeLabel = g.timeframe.charAt(0).toUpperCase() + g.timeframe.slice(1);
+      completed.push(timeLabel + ' practice goal: ' + g.target + 'm');
+    }
+  });
+  if (completed.length > 0) {
+    showGoalCompletePopup(completed);
+  }
+}
+
+function showGoalCompletePopup(goals) {
+  const popup = document.getElementById('goal-complete-popup');
+  const list = document.getElementById('goal-complete-list');
+  list.innerHTML = goals.map(g => '<div style="margin-bottom:6px;font-weight:600;">' + g + '</div>').join('');
+  popup.classList.remove('hidden');
+}
+
+function dismissGoalComplete() {
+  document.getElementById('goal-complete-popup').classList.add('hidden');
 }
 
 function renderGoalsSummary() {

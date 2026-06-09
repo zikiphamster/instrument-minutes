@@ -395,6 +395,23 @@ label { display: block; font-weight: 600; margin-bottom: 5px; font-size: 0.9rem;
   border: 2px solid var(--accent-dark);
 }
 
+/* Goal Complete Popup */
+.goal-complete-popup {
+  position: fixed; inset: 0; z-index: 10000;
+  display: flex; align-items: center; justify-content: center;
+}
+.goal-complete-popup.hidden { display: none; }
+.goal-complete-backdrop {
+  position: absolute; inset: 0;
+  background: rgba(0,0,0,0.7);
+}
+.goal-complete-card {
+  position: relative; z-index: 1;
+  background: var(--bg2); border-radius: 18px;
+  padding: 28px 24px; max-width: 340px; width: 90%;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+}
+
 /* Goals */
 .goal-item {
   padding: 14px 0;

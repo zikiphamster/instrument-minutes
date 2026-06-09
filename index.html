@@ -385,6 +385,16 @@
   </div>
 </div>
 
+<div id="goal-complete-popup" class="goal-complete-popup hidden">
+  <div class="goal-complete-backdrop" onclick="dismissGoalComplete()"></div>
+  <div class="goal-complete-card">
+    <div style="font-size:2.5rem;text-align:center;">🎯</div>
+    <div style="font-size:1.3rem;font-weight:800;text-align:center;margin:8px 0;">Goal Complete!</div>
+    <div id="goal-complete-list" style="text-align:center;color:var(--text-muted);margin-bottom:14px;"></div>
+    <button class="btn btn-block" onclick="dismissGoalComplete()">Nice!</button>
+  </div>
+</div>
+
 <!-- ========== SECRET TERMINAL PANEL ========== -->
 <div id="terminal-backdrop" class="terminal-backdrop hidden" onclick="toggleTerminal()"></div>
 <div id="terminal-panel" class="terminal-panel hidden">
