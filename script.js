@@ -1,8 +1,9 @@
 // ==================== VERSION ====================
-const APP_VERSION = '1.15.6';
+const APP_VERSION = '1.16.0';
 
 // ==================== CHANGELOG ====================
 const CHANGELOG = [
+  { version: '1.16.0', notes: 'Goals tab — set daily, weekly, or monthly targets for practice and screen time.' },
   { version: '1.15.6', notes: 'Calendar streak circles slightly larger for better visibility.' },
   { version: '1.15.5', notes: 'Calendar uses small colored circles around day numbers — orange for practiced, blue for freeze.' },
   { version: '1.15.0', notes: "What's New popup — see what changed after each update." },
@@ -174,7 +175,8 @@ async function signup() {
     lastPracticeDate: null,
     claimedMilestones: [],
     streakFreezes: 0,
-    purchaseLog: []
+    purchaseLog: [],
+    goals: []
   };
   db.profiles.push(user);
   await saveDB();
@@ -226,6 +228,7 @@ function switchTab(tabId, btn) {
   if (tabId === 'tab-stats') renderStats();
   if (tabId === 'tab-practice') renderPracticeHistory();
   if (tabId === 'tab-shop') renderShop();
+  if (tabId === 'tab-goals') renderGoals();
 }
 
 // ==================== APP ENTRY ====================
@@ -1127,6 +1130,103 @@ async function buyStreakFreeze() {
   await updateUser(user);
   refreshApp();
   renderShop();
+}
+
+// ==================== GOALS ====================
+function getGoalDateRange(timeframe) {
+  const now = new Date();
+  let start, end;
+  if (timeframe === 'daily') {
+    start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    end = new Date(start);
+    end.setDate(end.getDate() + 1);
+  } else if (timeframe === 'weekly') {
+    const dayOfWeek = (now.getDay() + 6) % 7; // Mon=0
+    start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - dayOfWeek);
+    end = new Date(start);
+    end.setDate(end.getDate() + 7);
+  } else {
+    start = new Date(now.getFullYear(), now.getMonth(), 1);
+    end = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+  }
+  return { start, end };
+}
+
+function calculateGoalProgress(user, goal) {
+  const { start, end } = getGoalDateRange(goal.timeframe);
+  if (goal.type === 'practice') {
+    return (user.practiceLog || [])
+      .filter(e => { const d = new Date(e.date); return d >= start && d < end; })
+      .reduce((sum, e) => sum + e.minutes, 0);
+  } else {
+    return (user.usageLog || [])
+      .filter(e => { const d = new Date(e.date + 'T00:00:00'); return d >= start && d < end; })
+      .reduce((sum, e) => sum + e.minutesUsed, 0);
+  }
+}
+
+async function createGoal() {
+  const user = getCurrentUser();
+  if (!user) return;
+  if (!user.goals) user.goals = [];
+  const type = document.getElementById('goal-type').value;
+  const target = parseInt(document.getElementById('goal-target').value);
+  const timeframe = document.getElementById('goal-timeframe').value;
+  if (!target || target <= 0) return;
+  user.goals.push({
+    id: crypto.randomUUID(),
+    type, target, timeframe,
+    createdAt: new Date().toISOString()
+  });
+  await updateUser(user);
+  showToast('Goal created!');
+  renderGoals();
+}
+
+async function deleteGoal(goalId) {
+  const user = getCurrentUser();
+  if (!user || !user.goals) return;
+  user.goals = user.goals.filter(g => g.id !== goalId);
+  await updateUser(user);
+  renderGoals();
+}
+
+function renderGoals() {
+  const user = getCurrentUser();
+  if (!user) return;
+  const goals = user.goals || [];
+  const el = document.getElementById('goals-list');
+  if (goals.length === 0) {
+    el.innerHTML = '<p style="color:var(--text-muted);font-size:0.9rem;">No goals yet. Create one above!</p>';
+    return;
+  }
+  el.innerHTML = goals.map(goal => {
+    const current = calculateGoalProgress(user, goal);
+    const pct = Math.min(100, Math.round((current / goal.target) * 100));
+    const typeLabel = goal.type === 'practice' ? 'Practice' : 'Screen Usage';
+    const timeLabel = goal.timeframe.charAt(0).toUpperCase() + goal.timeframe.slice(1);
+    const isUsageOver = goal.type === 'usage' && current > goal.target;
+    const isPracticeMet = goal.type === 'practice' && current >= goal.target;
+    const barColor = isUsageOver ? '#e57373' : isPracticeMet ? '#81c784' : 'var(--accent)';
+    const statusText = goal.type === 'usage'
+      ? (isUsageOver ? 'Over limit!' : (goal.target - current) + 'm remaining')
+      : (isPracticeMet ? 'Goal reached!' : (goal.target - current) + 'm to go');
+    return `<div class="goal-item">
+      <div class="goal-header">
+        <span class="goal-title">${typeLabel} — ${timeLabel}</span>
+        <button class="goal-delete" onclick="deleteGoal('${goal.id}')">✕</button>
+      </div>
+      <div class="goal-numbers">
+        <span style="font-weight:700;color:var(--accent-dark);">${current}</span>
+        <span style="color:var(--text-muted);"> / ${goal.target}m</span>
+        <span style="margin-left:auto;font-size:0.85rem;font-weight:600;color:${barColor};">${pct}%</span>
+      </div>
+      <div class="goal-bar-bg">
+        <div class="goal-bar-fill" style="width:${pct}%;background:${barColor};"></div>
+      </div>
+      <div style="font-size:0.8rem;color:var(--text-muted);margin-top:4px;">${statusText}</div>
+    </div>`;
+  }).join('');
 }
 
 // ==================== ADMIN DASHBOARD ====================

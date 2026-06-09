@@ -395,6 +395,37 @@ label { display: block; font-weight: 600; margin-bottom: 5px; font-size: 0.9rem;
   border: 2px solid var(--accent-dark);
 }
 
+/* Goals */
+.goal-item {
+  padding: 14px 0;
+  border-bottom: 1px solid var(--border);
+}
+.goal-item:last-child { border-bottom: none; }
+.goal-header {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 8px;
+}
+.goal-title {
+  font-weight: 700; font-size: 0.95rem;
+}
+.goal-numbers {
+  display: flex; align-items: baseline;
+  font-size: 0.9rem; margin-bottom: 6px;
+}
+.goal-bar-bg {
+  width: 100%; height: 8px; border-radius: 4px;
+  background: var(--accent-light); overflow: hidden;
+}
+.goal-bar-fill {
+  height: 100%; border-radius: 4px;
+  transition: width 0.3s;
+}
+.goal-delete {
+  background: none; border: none; color: var(--text-muted);
+  font-size: 1rem; cursor: pointer; padding: 2px 6px;
+}
+.goal-delete:hover { color: #e57373; }
+
 /* Milestones */
 .milestone-item {
   display: flex; justify-content: space-between; align-items: center;

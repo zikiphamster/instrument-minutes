@@ -92,6 +92,9 @@
       <button onclick="switchTab('tab-shop', this)">
         <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4H6zM3.5 6h17M16 10a4 4 0 0 1-8 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </button>
+      <button onclick="switchTab('tab-goals', this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2" fill="currentColor"/></svg>
+      </button>
       <button onclick="switchTab('tab-settings', this)">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
       </button>
@@ -186,6 +189,37 @@
       <div class="card">
         <h3>Purchase History</h3>
         <div id="shop-history"></div>
+      </div>
+    </div>
+
+    <!-- ---- Goals Tab ---- -->
+    <div id="tab-goals" class="tab-content hidden">
+      <div class="card">
+        <h2>Create a Goal</h2>
+        <div class="field">
+          <label for="goal-type">Goal Type</label>
+          <select id="goal-type" style="width:100%;padding:10px 14px;border:2px solid var(--border);border-radius:10px;font-size:0.95rem;background:var(--bg);color:var(--text);">
+            <option value="practice">Practice minutes</option>
+            <option value="usage">Limit screen usage</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="goal-target">Target (minutes)</label>
+          <input type="number" id="goal-target" min="1" value="30">
+        </div>
+        <div class="field">
+          <label for="goal-timeframe">Timeframe</label>
+          <select id="goal-timeframe" style="width:100%;padding:10px 14px;border:2px solid var(--border);border-radius:10px;font-size:0.95rem;background:var(--bg);color:var(--text);">
+            <option value="daily">Daily</option>
+            <option value="weekly">Weekly</option>
+            <option value="monthly">Monthly</option>
+          </select>
+        </div>
+        <button class="btn btn-block" onclick="createGoal()">Add Goal</button>
+      </div>
+      <div class="card">
+        <h2>Active Goals</h2>
+        <div id="goals-list"></div>
       </div>
     </div>
 
