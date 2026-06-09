@@ -1,8 +1,9 @@
 // ==================== VERSION ====================
-const APP_VERSION = '1.16.0';
+const APP_VERSION = '1.16.1';
 
 // ==================== CHANGELOG ====================
 const CHANGELOG = [
+  { version: '1.16.1', notes: 'Goals now show on the main page and in the admin dashboard.' },
   { version: '1.16.0', notes: 'Goals tab — set daily, weekly, or monthly targets for practice and screen time.' },
   { version: '1.15.6', notes: 'Calendar streak circles slightly larger for better visibility.' },
   { version: '1.15.5', notes: 'Calendar uses small colored circles around day numbers — orange for practiced, blue for freeze.' },
@@ -266,6 +267,7 @@ function refreshApp() {
   renderThemePicker(user.theme || 'pink');
   renderPracticeHistory();
   refreshStreakDisplay();
+  renderGoalsSummary();
 }
 
 // ==================== PRACTICE LOGGING ====================
@@ -1229,6 +1231,35 @@ function renderGoals() {
   }).join('');
 }
 
+function renderGoalsSummary() {
+  const user = getCurrentUser();
+  if (!user) return;
+  const goals = user.goals || [];
+  const card = document.getElementById('goals-summary');
+  const el = document.getElementById('goals-summary-list');
+  if (goals.length === 0) {
+    card.classList.add('hidden');
+    return;
+  }
+  card.classList.remove('hidden');
+  el.innerHTML = goals.map(goal => {
+    const current = calculateGoalProgress(user, goal);
+    const pct = Math.min(100, Math.round((current / goal.target) * 100));
+    const typeLabel = goal.type === 'practice' ? 'Practice' : 'Usage';
+    const timeLabel = goal.timeframe.charAt(0).toUpperCase() + goal.timeframe.slice(1);
+    const isUsageOver = goal.type === 'usage' && current > goal.target;
+    const isPracticeMet = goal.type === 'practice' && current >= goal.target;
+    const barColor = isUsageOver ? '#e57373' : isPracticeMet ? '#81c784' : 'var(--accent)';
+    return `<div style="margin-bottom:10px;">
+      <div style="display:flex;justify-content:space-between;font-size:0.85rem;margin-bottom:4px;">
+        <span style="font-weight:600;">${typeLabel} · ${timeLabel}</span>
+        <span style="font-weight:600;color:${barColor};">${current}/${goal.target}m (${pct}%)</span>
+      </div>
+      <div class="goal-bar-bg"><div class="goal-bar-fill" style="width:${pct}%;background:${barColor};"></div></div>
+    </div>`;
+  }).join('');
+}
+
 // ==================== ADMIN DASHBOARD ====================
 async function renderAdmin() {
   // Reload from Gist to get latest data from all devices
@@ -1300,6 +1331,36 @@ async function renderAdmin() {
 
   if (profiles.length === 0) {
     weeklyEl.innerHTML = '<p style="color:var(--text-muted);">No users to show.</p>';
+  }
+
+  // User goals
+  const goalsEl = document.getElementById('admin-goals');
+  const usersWithGoals = profiles.filter(p => (p.goals || []).length > 0);
+  if (usersWithGoals.length === 0) {
+    goalsEl.innerHTML = '<p style="color:var(--text-muted);">No goals set.</p>';
+  } else {
+    goalsEl.innerHTML = usersWithGoals.map(u => {
+      const goalRows = (u.goals || []).map(goal => {
+        const current = calculateGoalProgress(u, goal);
+        const pct = Math.min(100, Math.round((current / goal.target) * 100));
+        const typeLabel = goal.type === 'practice' ? 'Practice' : 'Usage';
+        const timeLabel = goal.timeframe.charAt(0).toUpperCase() + goal.timeframe.slice(1);
+        const isUsageOver = goal.type === 'usage' && current > goal.target;
+        const isPracticeMet = goal.type === 'practice' && current >= goal.target;
+        const barColor = isUsageOver ? '#e57373' : isPracticeMet ? '#81c784' : 'var(--accent)';
+        return `<div style="margin-bottom:8px;">
+          <div style="display:flex;justify-content:space-between;font-size:0.85rem;margin-bottom:3px;">
+            <span>${typeLabel} · ${timeLabel}</span>
+            <span style="font-weight:600;color:${barColor};">${current}/${goal.target}m (${pct}%)</span>
+          </div>
+          <div class="goal-bar-bg"><div class="goal-bar-fill" style="width:${pct}%;background:${barColor};"></div></div>
+        </div>`;
+      }).join('');
+      return `<div style="margin-bottom:14px;">
+        <h3 style="margin-bottom:8px;">${u.name}</h3>
+        ${goalRows}
+      </div>`;
+    }).join('');
   }
 
   // Purchase history
