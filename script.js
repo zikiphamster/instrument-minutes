@@ -1,8 +1,9 @@
 // ==================== VERSION ====================
-const APP_VERSION = '1.17.2';
+const APP_VERSION = '1.18.0';
 
 // ==================== CHANGELOG ====================
 const CHANGELOG = [
+  { version: '1.18.0', notes: 'Data merge — saves now fetch latest data first to prevent overwriting from other devices.' },
   { version: '1.17.2', notes: 'Hover over the trends graph to see exact minutes and direction at each point.' },
   { version: '1.17.1', notes: 'Fixed overlapping labels on the trends graph.' },
   { version: '1.17.0', notes: 'Trends tab — line graph showing if you are gaining or losing minutes over time.' },
@@ -17,7 +18,6 @@ const CHANGELOG = [
   { version: '1.13.0', notes: 'Streak lost popup — revive your streak for 30 minutes instead of losing it.' },
   { version: '1.12.0', notes: 'Shop tab — buy streak freezes to protect your streak when you miss a day.' },
   { version: '1.11.0', notes: 'Milestone rewards made much more generous.' },
-  { version: '1.10.0', notes: 'Secret terminal panel (Cmd+Shift+\\) for power-user commands.' },
 ];
 
 // ==================== CONFIG ====================
@@ -71,6 +71,17 @@ async function saveDB() {
     return false;
   }
   try {
+    // Fetch latest Gist and merge before saving
+    const latest = await fetch(`https://api.github.com/gists/${GIST_ID}`, {
+      headers: { 'Authorization': `token ${GITHUB_TOKEN}` }
+    });
+    if (latest.ok) {
+      const gist = await latest.json();
+      const remote = JSON.parse(gist.files['data.json'].content);
+      if (remote && remote.profiles) {
+        mergeProfiles(remote.profiles);
+      }
+    }
     const data = JSON.stringify(db, null, 2);
     const res = await fetch(`https://api.github.com/gists/${GIST_ID}`, {
       method: 'PATCH',
@@ -90,6 +101,68 @@ async function saveDB() {
     console.error('saveDB error:', e);
     return false;
   }
+}
+
+function mergeProfiles(remoteProfiles) {
+  // Add any profiles that exist remotely but not locally
+  remoteProfiles.forEach(remote => {
+    const localIdx = db.profiles.findIndex(p => p.id === remote.id);
+    if (localIdx === -1) {
+      // Profile exists on remote but not locally — add it
+      db.profiles.push(remote);
+    } else {
+      // Profile exists on both — merge logs (keep union of entries)
+      const local = db.profiles[localIdx];
+      // Merge practiceLog: keep all unique entries by date+minutes
+      const practiceSet = new Set(local.practiceLog.map(e => e.date + '|' + e.minutes));
+      (remote.practiceLog || []).forEach(e => {
+        const key = e.date + '|' + e.minutes;
+        if (!practiceSet.has(key)) {
+          local.practiceLog.push(e);
+          practiceSet.add(key);
+        }
+      });
+      // Merge usageLog: keep all unique entries by date+minutesUsed
+      const usageSet = new Set(local.usageLog.map(e => e.date + '|' + e.minutesUsed));
+      (remote.usageLog || []).forEach(e => {
+        const key = e.date + '|' + e.minutesUsed;
+        if (!usageSet.has(key)) {
+          local.usageLog.push(e);
+          usageSet.add(key);
+        }
+      });
+      // Merge purchaseLog
+      const purchaseSet = new Set((local.purchaseLog || []).map(e => e.date + '|' + e.item + '|' + e.cost));
+      (remote.purchaseLog || []).forEach(e => {
+        const key = e.date + '|' + e.item + '|' + e.cost;
+        if (!purchaseSet.has(key)) {
+          if (!local.purchaseLog) local.purchaseLog = [];
+          local.purchaseLog.push(e);
+          purchaseSet.add(key);
+        }
+      });
+      // For scalar values, keep whichever has more minutes/streak (avoid losing progress)
+      if (remote.minutesBank > local.minutesBank) local.minutesBank = remote.minutesBank;
+      if ((remote.streak || 0) > (local.streak || 0)) local.streak = remote.streak;
+      if (remote.lastPracticeDate > local.lastPracticeDate) local.lastPracticeDate = remote.lastPracticeDate;
+      if ((remote.streakFreezes || 0) > (local.streakFreezes || 0)) local.streakFreezes = remote.streakFreezes;
+      // Merge freezeDates
+      if (remote.freezeDates) {
+        if (!local.freezeDates) local.freezeDates = [];
+        remote.freezeDates.forEach(d => {
+          if (!local.freezeDates.includes(d)) local.freezeDates.push(d);
+        });
+      }
+      // Merge goals
+      if (remote.goals) {
+        if (!local.goals) local.goals = [];
+        const goalIds = new Set(local.goals.map(g => g.id));
+        remote.goals.forEach(g => {
+          if (!goalIds.has(g.id)) local.goals.push(g);
+        });
+      }
+    }
+  });
 }
 
 function showToast(message, isError) {
