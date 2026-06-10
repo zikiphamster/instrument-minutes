@@ -1,8 +1,9 @@
 // ==================== VERSION ====================
-const APP_VERSION = '1.16.2';
+const APP_VERSION = '1.16.3';
 
 // ==================== CHANGELOG ====================
 const CHANGELOG = [
+  { version: '1.16.3', notes: 'Terminal command /freeze <days> — add free streak freezes for vacations.' },
   { version: '1.16.2', notes: 'Goal complete popup — celebration when you hit a practice target.' },
   { version: '1.16.1', notes: 'Goals now show on the main page and in the admin dashboard.' },
   { version: '1.16.0', notes: 'Goals tab — set daily, weekly, or monthly targets for practice and screen time.' },
@@ -1488,6 +1489,7 @@ function handleTerminalCommand(input) {
   }
   if (cmd === '/set') return termCmdSet(parts.slice(1));
   if (cmd === '/add') return termCmdAdd(parts.slice(1));
+  if (cmd === '/freeze') return termCmdFreeze(parts.slice(1));
   if (cmd === '/clear') return termCmdClearData(parts.slice(1));
   termAppendLine('Unknown command: ' + cmd + '. Type /help for commands.', 'term-err');
 }
@@ -1502,10 +1504,12 @@ function termCmdHelp() {
     '/set minutes <n>             Set minutesBank to n',
     '/add minutes <n>             Add n to minutesBank',
     '/set streak <n>              Set streak count',
+    '/set freezes <n>             Set streak freezes count',
     '/clear usage                 Clear all usage log entries',
     '/clear practice              Clear all practice log entries',
     '/add usage <mins> [date]     Add usage entry (YYYY-MM-DD)',
     '/add practice <mins> [date]  Add practice entry (YYYY-MM-DD)',
+    '/freeze <days>               Freeze streak for n days (free)',
   ];
   cmds.forEach(c => termAppendLine(c, 'term-info'));
 }
@@ -1547,8 +1551,13 @@ async function termCmdSet(args) {
     await updateUser(user);
     refreshApp();
     termAppendLine('streak set to ' + user.streak, 'term-ok');
+  } else if (field === 'freezes' && !isNaN(value)) {
+    user.streakFreezes = Math.max(0, value);
+    await updateUser(user);
+    refreshApp();
+    termAppendLine('streakFreezes set to ' + user.streakFreezes, 'term-ok');
   } else {
-    termAppendLine('Usage: /set minutes <n> | /set streak <n>', 'term-err');
+    termAppendLine('Usage: /set minutes <n> | /set streak <n> | /set freezes <n>', 'term-err');
   }
 }
 
@@ -1584,6 +1593,20 @@ async function termCmdAdd(args) {
   } else {
     termAppendLine('Usage: /add minutes <n> | /add usage <mins> [date] | /add practice <mins> [date]', 'term-err');
   }
+}
+
+async function termCmdFreeze(args) {
+  const user = getCurrentUser();
+  if (!user) { termAppendLine('No user logged in.', 'term-err'); return; }
+  const days = parseInt(args[0]);
+  if (!days || days <= 0) {
+    termAppendLine('Usage: /freeze <days> — freeze streak for n days (free)', 'term-err');
+    return;
+  }
+  user.streakFreezes = (user.streakFreezes || 0) + days;
+  await updateUser(user);
+  refreshApp();
+  termAppendLine('Added ' + days + ' free streak freeze' + (days > 1 ? 's' : '') + '. Total: ' + user.streakFreezes, 'term-ok');
 }
 
 async function termCmdClearData(args) {
