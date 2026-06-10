@@ -395,6 +395,14 @@ label { display: block; font-weight: 600; margin-bottom: 5px; font-size: 0.9rem;
   border: 2px solid var(--accent-dark);
 }
 
+/* Trends */
+.trend-stat {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 8px 0; border-bottom: 1px solid var(--border);
+  font-size: 0.9rem;
+}
+.trend-stat:last-child { border-bottom: none; }
+
 /* Goal Complete Popup */
 .goal-complete-popup {
   position: fixed; inset: 0; z-index: 10000;

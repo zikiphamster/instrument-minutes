@@ -1,8 +1,9 @@
 // ==================== VERSION ====================
-const APP_VERSION = '1.16.3';
+const APP_VERSION = '1.17.0';
 
 // ==================== CHANGELOG ====================
 const CHANGELOG = [
+  { version: '1.17.0', notes: 'Trends tab — line graph showing if you are gaining or losing minutes over time.' },
   { version: '1.16.3', notes: 'Terminal command /freeze <days> — add free streak freezes for vacations.' },
   { version: '1.16.2', notes: 'Goal complete popup — celebration when you hit a practice target.' },
   { version: '1.16.1', notes: 'Goals now show on the main page and in the admin dashboard.' },
@@ -232,6 +233,7 @@ function switchTab(tabId, btn) {
   if (tabId === 'tab-practice') renderPracticeHistory();
   if (tabId === 'tab-shop') renderShop();
   if (tabId === 'tab-goals') renderGoals();
+  if (tabId === 'tab-trends') renderTrends();
 }
 
 // ==================== APP ENTRY ====================
@@ -1304,6 +1306,199 @@ function renderGoalsSummary() {
       <div class="goal-bar-bg"><div class="goal-bar-fill" style="width:${pct}%;background:${barColor};"></div></div>
     </div>`;
   }).join('');
+}
+
+// ==================== TRENDS ====================
+let trendDays = 7;
+
+function setTrendRange(days) {
+  trendDays = days;
+  document.getElementById('trend-7d').className = 'btn btn-sm' + (days === 7 ? '' : ' btn-outline');
+  document.getElementById('trend-30d').className = 'btn btn-sm' + (days === 30 ? '' : ' btn-outline');
+  document.getElementById('trend-all').className = 'btn btn-sm' + (days === 0 ? '' : ' btn-outline');
+  renderTrends();
+}
+
+function renderTrends() {
+  const user = getCurrentUser();
+  if (!user) return;
+
+  // Build daily net data: practiced - used
+  const dailyMap = {};
+
+  (user.practiceLog || []).forEach(e => {
+    const d = new Date(e.date);
+    const key = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    dailyMap[key] = (dailyMap[key] || { practiced: 0, used: 0 });
+    dailyMap[key].practiced += e.minutes;
+  });
+
+  (user.usageLog || []).forEach(e => {
+    dailyMap[e.date] = (dailyMap[e.date] || { practiced: 0, used: 0 });
+    dailyMap[e.date].used += e.minutesUsed;
+  });
+
+  // Sort dates
+  let dates = Object.keys(dailyMap).sort();
+  if (dates.length === 0) {
+    document.getElementById('trend-summary').innerHTML = '<p style="color:var(--text-muted);font-size:0.9rem;">No data yet.</p>';
+    const ctx = document.getElementById('trend-canvas').getContext('2d');
+    ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+    return;
+  }
+
+  // Filter by timeframe
+  if (trendDays > 0) {
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - trendDays);
+    const cutoffStr = cutoff.getFullYear() + '-' + String(cutoff.getMonth() + 1).padStart(2, '0') + '-' + String(cutoff.getDate()).padStart(2, '0');
+    dates = dates.filter(d => d >= cutoffStr);
+  }
+
+  if (dates.length === 0) {
+    document.getElementById('trend-summary').innerHTML = '<p style="color:var(--text-muted);font-size:0.9rem;">No data in this period.</p>';
+    const ctx = document.getElementById('trend-canvas').getContext('2d');
+    ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+    return;
+  }
+
+  // Build cumulative balance change over time
+  const points = [];
+  let cumulative = 0;
+  dates.forEach(d => {
+    const day = dailyMap[d];
+    cumulative += day.practiced - day.used;
+    points.push({ date: d, net: day.practiced - day.used, cumulative });
+  });
+
+  // Draw line graph
+  drawTrendLine(points);
+
+  // Summary stats
+  const totalPracticed = dates.reduce((s, d) => s + dailyMap[d].practiced, 0);
+  const totalUsed = dates.reduce((s, d) => s + dailyMap[d].used, 0);
+  const netChange = totalPracticed - totalUsed;
+  const direction = netChange > 0 ? 'gaining' : netChange < 0 ? 'losing' : 'breaking even on';
+  const color = netChange > 0 ? '#81c784' : netChange < 0 ? '#e57373' : 'var(--text-muted)';
+  const arrow = netChange > 0 ? '↑' : netChange < 0 ? '↓' : '→';
+
+  // Percentage: net relative to practiced
+  let pctText = '';
+  if (totalPracticed > 0) {
+    const pct = Math.round((totalUsed / totalPracticed) * 100);
+    pctText = `<div class="trend-stat"><span>Usage ratio</span><span style="font-weight:700;">${pct}% of practiced</span></div>`;
+  }
+
+  // Split into halves for trend direction
+  let trendText = '';
+  if (points.length >= 2) {
+    const mid = Math.floor(points.length / 2);
+    const firstHalf = points.slice(0, mid).reduce((s, p) => s + p.net, 0);
+    const secondHalf = points.slice(mid).reduce((s, p) => s + p.net, 0);
+    const trendDir = secondHalf > firstHalf ? 'Improving' : secondHalf < firstHalf ? 'Declining' : 'Steady';
+    const trendColor = secondHalf > firstHalf ? '#81c784' : secondHalf < firstHalf ? '#e57373' : 'var(--text-muted)';
+    trendText = `<div class="trend-stat"><span>Trend</span><span style="font-weight:700;color:${trendColor};">${trendDir}</span></div>`;
+  }
+
+  document.getElementById('trend-summary').innerHTML = `
+    <div class="trend-stat"><span>Practiced</span><span style="font-weight:700;">${totalPracticed}m</span></div>
+    <div class="trend-stat"><span>Used</span><span style="font-weight:700;">${totalUsed}m</span></div>
+    <div class="trend-stat"><span>Net change</span><span style="font-weight:700;color:${color};">${arrow} ${Math.abs(netChange)}m (${direction})</span></div>
+    ${pctText}
+    ${trendText}
+  `;
+}
+
+function drawTrendLine(points) {
+  const canvas = document.getElementById('trend-canvas');
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  const w = rect.width;
+  const h = rect.height;
+  ctx.clearRect(0, 0, w, h);
+
+  if (points.length < 2) {
+    ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--text-muted');
+    ctx.font = '14px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('Not enough data', w / 2, h / 2);
+    return;
+  }
+
+  const padding = { top: 20, right: 16, bottom: 30, left: 40 };
+  const plotW = w - padding.left - padding.right;
+  const plotH = h - padding.top - padding.bottom;
+
+  const vals = points.map(p => p.cumulative);
+  const minVal = Math.min(0, ...vals);
+  const maxVal = Math.max(0, ...vals);
+  const range = maxVal - minVal || 1;
+
+  const textColor = getComputedStyle(document.documentElement).getPropertyValue('--text-muted').trim();
+  const accentColor = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
+
+  // Zero line
+  const zeroY = padding.top + plotH - ((0 - minVal) / range) * plotH;
+  ctx.strokeStyle = textColor;
+  ctx.lineWidth = 0.5;
+  ctx.setLineDash([4, 4]);
+  ctx.beginPath();
+  ctx.moveTo(padding.left, zeroY);
+  ctx.lineTo(w - padding.right, zeroY);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Y axis labels
+  ctx.fillStyle = textColor;
+  ctx.font = '11px sans-serif';
+  ctx.textAlign = 'right';
+  ctx.fillText(maxVal + 'm', padding.left - 6, padding.top + 4);
+  ctx.fillText(minVal + 'm', padding.left - 6, padding.top + plotH + 4);
+  ctx.fillText('0', padding.left - 6, zeroY + 4);
+
+  // X axis labels (first and last date)
+  ctx.textAlign = 'center';
+  ctx.fillText(points[0].date.slice(5), padding.left, h - 6);
+  ctx.fillText(points[points.length - 1].date.slice(5), w - padding.right, h - 6);
+
+  // Line
+  ctx.strokeStyle = accentColor;
+  ctx.lineWidth = 2.5;
+  ctx.lineJoin = 'round';
+  ctx.beginPath();
+  points.forEach((p, i) => {
+    const x = padding.left + (i / (points.length - 1)) * plotW;
+    const y = padding.top + plotH - ((p.cumulative - minVal) / range) * plotH;
+    if (i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+
+  // Gradient fill under line
+  const gradient = ctx.createLinearGradient(0, padding.top, 0, padding.top + plotH);
+  gradient.addColorStop(0, accentColor + '40');
+  gradient.addColorStop(1, accentColor + '05');
+  ctx.lineTo(padding.left + plotW, padding.top + plotH);
+  ctx.lineTo(padding.left, padding.top + plotH);
+  ctx.closePath();
+  ctx.fillStyle = gradient;
+  ctx.fill();
+
+  // Dots on points (if not too many)
+  if (points.length <= 31) {
+    points.forEach((p, i) => {
+      const x = padding.left + (i / (points.length - 1)) * plotW;
+      const y = padding.top + plotH - ((p.cumulative - minVal) / range) * plotH;
+      ctx.beginPath();
+      ctx.arc(x, y, 3, 0, Math.PI * 2);
+      ctx.fillStyle = accentColor;
+      ctx.fill();
+    });
+  }
 }
 
 // ==================== ADMIN DASHBOARD ====================
