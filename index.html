@@ -240,7 +240,10 @@
           <button class="btn btn-sm btn-outline" id="trend-30d" onclick="setTrendRange(30)">30 Days</button>
           <button class="btn btn-sm btn-outline" id="trend-all" onclick="setTrendRange(0)">All Time</button>
         </div>
-        <canvas id="trend-canvas" width="600" height="200" style="width:100%;height:200px;"></canvas>
+        <div style="position:relative;">
+          <canvas id="trend-canvas" width="600" height="200" style="width:100%;height:200px;cursor:crosshair;"></canvas>
+          <div id="trend-tooltip" class="trend-tooltip hidden"></div>
+        </div>
       </div>
       <div class="card">
         <h2>Summary</h2>

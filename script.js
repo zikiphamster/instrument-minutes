@@ -1,8 +1,9 @@
 // ==================== VERSION ====================
-const APP_VERSION = '1.17.1';
+const APP_VERSION = '1.17.2';
 
 // ==================== CHANGELOG ====================
 const CHANGELOG = [
+  { version: '1.17.2', notes: 'Hover over the trends graph to see exact minutes and direction at each point.' },
   { version: '1.17.1', notes: 'Fixed overlapping labels on the trends graph.' },
   { version: '1.17.0', notes: 'Trends tab — line graph showing if you are gaining or losing minutes over time.' },
   { version: '1.16.3', notes: 'Terminal command /freeze <days> — add free streak freezes for vacations.' },
@@ -17,7 +18,6 @@ const CHANGELOG = [
   { version: '1.12.0', notes: 'Shop tab — buy streak freezes to protect your streak when you miss a day.' },
   { version: '1.11.0', notes: 'Milestone rewards made much more generous.' },
   { version: '1.10.0', notes: 'Secret terminal panel (Cmd+Shift+\\) for power-user commands.' },
-  { version: '1.9.0', notes: 'Timer redesigned — tap Start, timer counts up, tap Finish to use minutes.' },
 ];
 
 // ==================== CONFIG ====================
@@ -1311,6 +1311,7 @@ function renderGoalsSummary() {
 
 // ==================== TRENDS ====================
 let trendDays = 7;
+let trendChartData = null; // stores points + layout for hover
 
 function setTrendRange(days) {
   trendDays = days;
@@ -1504,6 +1505,79 @@ function drawTrendLine(points) {
       ctx.fillStyle = accentColor;
       ctx.fill();
     });
+  }
+
+  // Store chart data for hover
+  trendChartData = { points, padding, plotW, plotH, minVal, range, w, h };
+  // Attach listeners once
+  if (!canvas._trendListeners) {
+    canvas._trendListeners = true;
+    canvas.addEventListener('mousemove', handleTrendHover);
+    canvas.addEventListener('mouseleave', () => {
+      document.getElementById('trend-tooltip').classList.add('hidden');
+    });
+    canvas.addEventListener('touchmove', e => {
+      e.preventDefault();
+      const touch = e.touches[0];
+      const fakeEvent = { clientX: touch.clientX, clientY: touch.clientY, target: canvas };
+      handleTrendHover(fakeEvent);
+    }, { passive: false });
+    canvas.addEventListener('touchend', () => {
+      document.getElementById('trend-tooltip').classList.add('hidden');
+    });
+  }
+}
+
+function handleTrendHover(e) {
+  if (!trendChartData) return;
+  const { points, padding, plotW, plotH, minVal, range } = trendChartData;
+  const canvas = document.getElementById('trend-canvas');
+  const rect = canvas.getBoundingClientRect();
+  const mouseX = e.clientX - rect.left;
+
+  // Find closest point
+  const relX = mouseX - padding.left;
+  if (relX < 0 || relX > plotW) {
+    document.getElementById('trend-tooltip').classList.add('hidden');
+    return;
+  }
+
+  const idx = Math.round((relX / plotW) * (points.length - 1));
+  const clamped = Math.max(0, Math.min(points.length - 1, idx));
+  const p = points[clamped];
+
+  // Determine trend at this point
+  let trendLabel = '';
+  let trendColor = 'var(--text-muted)';
+  if (clamped > 0) {
+    const prev = points[clamped - 1].cumulative;
+    if (p.cumulative > prev) { trendLabel = ' ↑ Gaining'; trendColor = '#81c784'; }
+    else if (p.cumulative < prev) { trendLabel = ' ↓ Losing'; trendColor = '#e57373'; }
+    else { trendLabel = ' → Steady'; }
+  }
+
+  const tooltip = document.getElementById('trend-tooltip');
+  tooltip.innerHTML = `<div style="font-weight:700;">${p.date}</div>` +
+    `<div>Net: <strong>${p.cumulative >= 0 ? '+' : ''}${p.cumulative}m</strong></div>` +
+    `<div>Day: ${p.net >= 0 ? '+' : ''}${p.net}m</div>` +
+    `<div style="color:${trendColor};font-weight:600;">${trendLabel}</div>`;
+  tooltip.classList.remove('hidden');
+
+  // Position tooltip
+  const pointX = padding.left + (clamped / (points.length - 1)) * plotW;
+  const pointY = padding.top + plotH - ((p.cumulative - minVal) / range) * plotH;
+  tooltip.style.left = pointX + 'px';
+  tooltip.style.top = (pointY - 60) + 'px';
+
+  // Keep tooltip within bounds
+  const tooltipRect = tooltip.getBoundingClientRect();
+  const parentRect = canvas.parentElement.getBoundingClientRect();
+  if (tooltipRect.left < parentRect.left) {
+    tooltip.style.transform = 'translateX(0)';
+  } else if (tooltipRect.right > parentRect.right) {
+    tooltip.style.transform = 'translateX(-100%)';
+  } else {
+    tooltip.style.transform = 'translateX(-50%)';
   }
 }
 

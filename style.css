@@ -402,6 +402,16 @@ label { display: block; font-weight: 600; margin-bottom: 5px; font-size: 0.9rem;
   font-size: 0.9rem;
 }
 .trend-stat:last-child { border-bottom: none; }
+.trend-tooltip {
+  position: absolute; pointer-events: none;
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 10px; padding: 8px 12px;
+  font-size: 0.8rem; white-space: nowrap;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  transform: translateX(-50%);
+  z-index: 10;
+}
+.trend-tooltip.hidden { display: none; }
 
 /* Goal Complete Popup */
 .goal-complete-popup {
