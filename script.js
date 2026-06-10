@@ -1,8 +1,9 @@
 // ==================== VERSION ====================
-const APP_VERSION = '1.17.0';
+const APP_VERSION = '1.17.1';
 
 // ==================== CHANGELOG ====================
 const CHANGELOG = [
+  { version: '1.17.1', notes: 'Fixed overlapping labels on the trends graph.' },
   { version: '1.17.0', notes: 'Trends tab — line graph showing if you are gaining or losing minutes over time.' },
   { version: '1.16.3', notes: 'Terminal command /freeze <days> — add free streak freezes for vacations.' },
   { version: '1.16.2', notes: 'Goal complete popup — celebration when you hit a practice target.' },
@@ -1456,9 +1457,14 @@ function drawTrendLine(points) {
   ctx.fillStyle = textColor;
   ctx.font = '11px sans-serif';
   ctx.textAlign = 'right';
-  ctx.fillText(maxVal + 'm', padding.left - 6, padding.top + 4);
-  ctx.fillText(minVal + 'm', padding.left - 6, padding.top + plotH + 4);
-  ctx.fillText('0', padding.left - 6, zeroY + 4);
+  if (maxVal !== 0) ctx.fillText(maxVal + 'm', padding.left - 6, padding.top + 4);
+  if (minVal !== 0) ctx.fillText(minVal + 'm', padding.left - 6, padding.top + plotH + 4);
+  // Only draw "0" if it won't overlap the max/min labels
+  const zeroDistFromTop = Math.abs(zeroY - padding.top);
+  const zeroDistFromBottom = Math.abs((padding.top + plotH) - zeroY);
+  if (zeroDistFromTop > 14 && zeroDistFromBottom > 14) {
+    ctx.fillText('0', padding.left - 6, zeroY + 4);
+  }
 
   // X axis labels (first and last date)
   ctx.textAlign = 'center';
