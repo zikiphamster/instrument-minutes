@@ -1,8 +1,9 @@
 // ==================== VERSION ====================
-const APP_VERSION = '1.18.0';
+const APP_VERSION = '1.18.1';
 
 // ==================== CHANGELOG ====================
 const CHANGELOG = [
+  { version: '1.18.1', notes: 'Fixed merge logic undoing freeze consumption and minute spending.' },
   { version: '1.18.0', notes: 'Data merge — saves now fetch latest data first to prevent overwriting from other devices.' },
   { version: '1.17.2', notes: 'Hover over the trends graph to see exact minutes and direction at each point.' },
   { version: '1.17.1', notes: 'Fixed overlapping labels on the trends graph.' },
@@ -17,7 +18,6 @@ const CHANGELOG = [
   { version: '1.14.0', notes: 'Calendar shows flame icons on practiced days. Blue flames for streak freeze days.' },
   { version: '1.13.0', notes: 'Streak lost popup — revive your streak for 30 minutes instead of losing it.' },
   { version: '1.12.0', notes: 'Shop tab — buy streak freezes to protect your streak when you miss a day.' },
-  { version: '1.11.0', notes: 'Milestone rewards made much more generous.' },
 ];
 
 // ==================== CONFIG ====================
@@ -141,11 +141,10 @@ function mergeProfiles(remoteProfiles) {
           purchaseSet.add(key);
         }
       });
-      // For scalar values, keep whichever has more minutes/streak (avoid losing progress)
-      if (remote.minutesBank > local.minutesBank) local.minutesBank = remote.minutesBank;
+      // For scalar values: local always wins (it has the latest intent — spending, freezing, etc.)
+      // Only pull from remote for monotonically increasing fields
       if ((remote.streak || 0) > (local.streak || 0)) local.streak = remote.streak;
       if (remote.lastPracticeDate > local.lastPracticeDate) local.lastPracticeDate = remote.lastPracticeDate;
-      if ((remote.streakFreezes || 0) > (local.streakFreezes || 0)) local.streakFreezes = remote.streakFreezes;
       // Merge freezeDates
       if (remote.freezeDates) {
         if (!local.freezeDates) local.freezeDates = [];
