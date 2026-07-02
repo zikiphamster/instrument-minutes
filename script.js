@@ -1,8 +1,9 @@
 // ==================== VERSION ====================
-const APP_VERSION = '1.18.1';
+const APP_VERSION = '1.18.2';
 
 // ==================== CHANGELOG ====================
 const CHANGELOG = [
+  { version: '1.18.2', notes: 'Fixed other devices overwriting your minutes and streak changes.' },
   { version: '1.18.1', notes: 'Fixed merge logic undoing freeze consumption and minute spending.' },
   { version: '1.18.0', notes: 'Data merge — saves now fetch latest data first to prevent overwriting from other devices.' },
   { version: '1.17.2', notes: 'Hover over the trends graph to see exact minutes and direction at each point.' },
@@ -17,7 +18,6 @@ const CHANGELOG = [
   { version: '1.15.0', notes: "What's New popup — see what changed after each update." },
   { version: '1.14.0', notes: 'Calendar shows flame icons on practiced days. Blue flames for streak freeze days.' },
   { version: '1.13.0', notes: 'Streak lost popup — revive your streak for 30 minutes instead of losing it.' },
-  { version: '1.12.0', notes: 'Shop tab — buy streak freezes to protect your streak when you miss a day.' },
 ];
 
 // ==================== CONFIG ====================
@@ -104,6 +104,7 @@ async function saveDB() {
 }
 
 function mergeProfiles(remoteProfiles) {
+  const currentUserId = localStorage.getItem('im_currentUser');
   // Add any profiles that exist remotely but not locally
   remoteProfiles.forEach(remote => {
     const localIdx = db.profiles.findIndex(p => p.id === remote.id);
@@ -111,8 +112,16 @@ function mergeProfiles(remoteProfiles) {
       // Profile exists on remote but not locally — add it
       db.profiles.push(remote);
     } else {
-      // Profile exists on both — merge logs (keep union of entries)
       const local = db.profiles[localIdx];
+      const isCurrentUser = local.id === currentUserId;
+
+      if (!isCurrentUser) {
+        // Not our user — remote is the authority, replace entirely
+        db.profiles[localIdx] = remote;
+        return;
+      }
+
+      // Current user — merge logs (keep union of entries)
       // Merge practiceLog: keep all unique entries by date+minutes
       const practiceSet = new Set(local.practiceLog.map(e => e.date + '|' + e.minutes));
       (remote.practiceLog || []).forEach(e => {
@@ -141,8 +150,8 @@ function mergeProfiles(remoteProfiles) {
           purchaseSet.add(key);
         }
       });
-      // For scalar values: local always wins (it has the latest intent — spending, freezing, etc.)
-      // Only pull from remote for monotonically increasing fields
+      // Scalar values: local wins (this device just made the change)
+      // Only pull streak/lastPracticeDate if remote is ahead
       if ((remote.streak || 0) > (local.streak || 0)) local.streak = remote.streak;
       if (remote.lastPracticeDate > local.lastPracticeDate) local.lastPracticeDate = remote.lastPracticeDate;
       // Merge freezeDates
