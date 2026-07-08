@@ -1,8 +1,9 @@
 // ==================== VERSION ====================
-const APP_VERSION = '1.18.3';
+const APP_VERSION = '1.18.4';
 
 // ==================== CHANGELOG ====================
 const CHANGELOG = [
+  { version: '1.18.4', notes: 'Terminal /debug command — compare localStorage, live db, and Gist sync state.' },
   { version: '1.18.3', notes: 'Fixed /set streak and decline streak being overwritten by merge.' },
   { version: '1.18.2', notes: 'Fixed other devices overwriting your minutes and streak changes.' },
   { version: '1.18.1', notes: 'Fixed merge logic undoing freeze consumption and minute spending.' },
@@ -17,7 +18,6 @@ const CHANGELOG = [
   { version: '1.15.6', notes: 'Calendar streak circles slightly larger for better visibility.' },
   { version: '1.15.5', notes: 'Calendar uses small colored circles around day numbers — orange for practiced, blue for freeze.' },
   { version: '1.15.0', notes: "What's New popup — see what changed after each update." },
-  { version: '1.14.0', notes: 'Calendar shows flame icons on practiced days. Blue flames for streak freeze days.' },
 ];
 
 // ==================== CONFIG ====================
@@ -1843,6 +1843,7 @@ function handleTerminalCommand(input) {
   if (cmd === '/set') return termCmdSet(parts.slice(1));
   if (cmd === '/add') return termCmdAdd(parts.slice(1));
   if (cmd === '/freeze') return termCmdFreeze(parts.slice(1));
+  if (cmd === '/debug') return termCmdDebug();
   if (cmd === '/clear') return termCmdClearData(parts.slice(1));
   termAppendLine('Unknown command: ' + cmd + '. Type /help for commands.', 'term-err');
 }
@@ -1863,6 +1864,7 @@ function termCmdHelp() {
     '/add usage <mins> [date]     Add usage entry (YYYY-MM-DD)',
     '/add practice <mins> [date]  Add practice entry (YYYY-MM-DD)',
     '/freeze <days>               Freeze streak for n days (free)',
+    '/debug                       Show sync state: localStorage vs live db vs Gist',
   ];
   cmds.forEach(c => termAppendLine(c, 'term-info'));
 }
@@ -1960,6 +1962,73 @@ async function termCmdFreeze(args) {
   await updateUser(user);
   refreshApp();
   termAppendLine('Added ' + days + ' free streak freeze' + (days > 1 ? 's' : '') + '. Total: ' + user.streakFreezes, 'term-ok');
+}
+
+async function termCmdDebug() {
+  const currentUserId = localStorage.getItem('im_currentUser');
+  const cacheRaw = localStorage.getItem('im_db_cache');
+
+  termAppendLine('SYNC DEBUG', 'term-heading');
+  termAppendLine('gistLoadedOk: ' + gistLoadedOk, gistLoadedOk ? 'term-ok' : 'term-err');
+  termAppendLine('Logged-in user ID: ' + (currentUserId || 'none'), 'term-info');
+
+  // LocalStorage cache
+  termAppendLine('── LOCALSTORAGE CACHE ──', 'term-heading');
+  if (!cacheRaw) {
+    termAppendLine('No cache found', 'term-err');
+  } else {
+    const cache = JSON.parse(cacheRaw);
+    (cache.profiles || []).forEach(p => {
+      termAppendLine(
+        p.name + (p.id === currentUserId ? ' (you)' : '') +
+        ' | bank=' + p.minutesBank +
+        ' | streak=' + (p.streak || 0) +
+        ' | lastPractice=' + (p.lastPracticeDate || 'never') +
+        ' | freezes=' + (p.streakFreezes || 0),
+        'term-info'
+      );
+    });
+  }
+
+  // Live in-memory db
+  termAppendLine('── LIVE DB (in memory) ──', 'term-heading');
+  (db.profiles || []).forEach(p => {
+    termAppendLine(
+      p.name + (p.id === currentUserId ? ' (you)' : '') +
+      ' | bank=' + p.minutesBank +
+      ' | streak=' + (p.streak || 0) +
+      ' | lastPractice=' + (p.lastPracticeDate || 'never') +
+      ' | freezes=' + (p.streakFreezes || 0),
+      'term-info'
+    );
+  });
+
+  // Gist (live fetch)
+  termAppendLine('── GIST (live fetch) ──', 'term-heading');
+  try {
+    const res = await fetch(`https://api.github.com/gists/${GIST_ID}`, {
+      headers: { 'Authorization': `token ${GITHUB_TOKEN}` }
+    });
+    const gist = await res.json();
+    const gistData = JSON.parse(gist.files['data.json'].content);
+    (gistData.profiles || []).forEach(p => {
+      const memProfile = db.profiles.find(x => x.id === p.id);
+      const bankMatch = memProfile && memProfile.minutesBank === p.minutesBank;
+      const streakMatch = memProfile && (memProfile.streak || 0) === (p.streak || 0);
+      const inSync = bankMatch && streakMatch;
+      termAppendLine(
+        p.name + (p.id === currentUserId ? ' (you)' : '') +
+        ' | bank=' + p.minutesBank + (bankMatch ? '' : ' ⚠ mismatch') +
+        ' | streak=' + (p.streak || 0) + (streakMatch ? '' : ' ⚠ mismatch') +
+        ' | lastPractice=' + (p.lastPracticeDate || 'never') +
+        ' | freezes=' + (p.streakFreezes || 0) +
+        (inSync ? ' ✓ in sync' : ''),
+        inSync ? 'term-ok' : 'term-err'
+      );
+    });
+  } catch (e) {
+    termAppendLine('Failed to fetch Gist: ' + e.message, 'term-err');
+  }
 }
 
 async function termCmdClearData(args) {
