@@ -1,8 +1,9 @@
 // ==================== VERSION ====================
-const APP_VERSION = '1.18.2';
+const APP_VERSION = '1.18.3';
 
 // ==================== CHANGELOG ====================
 const CHANGELOG = [
+  { version: '1.18.3', notes: 'Fixed /set streak and decline streak being overwritten by merge.' },
   { version: '1.18.2', notes: 'Fixed other devices overwriting your minutes and streak changes.' },
   { version: '1.18.1', notes: 'Fixed merge logic undoing freeze consumption and minute spending.' },
   { version: '1.18.0', notes: 'Data merge — saves now fetch latest data first to prevent overwriting from other devices.' },
@@ -17,7 +18,6 @@ const CHANGELOG = [
   { version: '1.15.5', notes: 'Calendar uses small colored circles around day numbers — orange for practiced, blue for freeze.' },
   { version: '1.15.0', notes: "What's New popup — see what changed after each update." },
   { version: '1.14.0', notes: 'Calendar shows flame icons on practiced days. Blue flames for streak freeze days.' },
-  { version: '1.13.0', notes: 'Streak lost popup — revive your streak for 30 minutes instead of losing it.' },
 ];
 
 // ==================== CONFIG ====================
@@ -150,10 +150,7 @@ function mergeProfiles(remoteProfiles) {
           purchaseSet.add(key);
         }
       });
-      // Scalar values: local wins (this device just made the change)
-      // Only pull streak/lastPracticeDate if remote is ahead
-      if ((remote.streak || 0) > (local.streak || 0)) local.streak = remote.streak;
-      if (remote.lastPracticeDate > local.lastPracticeDate) local.lastPracticeDate = remote.lastPracticeDate;
+      // Current user: local wins on all scalar values — this device just made the change
       // Merge freezeDates
       if (remote.freezeDates) {
         if (!local.freezeDates) local.freezeDates = [];
